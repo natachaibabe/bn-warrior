@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#050505">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BN Warrior">
+<title>BN Warrior V11 Production</title>
+<link rel="stylesheet" href="assets/styles.css">
+</head>
+<body>
+<div class="app">
+<aside class="sidebar">
+ <div class="brand"><div class="logo">BN</div><div><strong>BN WARRIOR</strong><small>V11 PRODUCTION</small></div></div>
+ <nav id="sideNav" class="nav"></nav>
+ <div class="side-footer"><div class="rank-card"><span>CURRENT RANK</span><strong id="sideRank"></strong><div class="bar"><i id="sideXp"></i></div></div><button id="backupSide" class="btn primary">Backup</button></div>
+</aside>
+<main class="main">
+ <header class="topbar"><div><span class="eyebrow">TACTICAL FITNESS OPERATING SYSTEM</span><h2>Operation Lean Warrior</h2></div><div style="display:flex;gap:8px;flex-wrap:wrap"><button id="installApp" class="btn primary" style="display:none">ติดตั้งแอป</button><button id="backupTop" class="btn ghost">สำรองข้อมูล</button></div></header>
+ <section id="commandPage" class="page active"></section>
+ <section id="workoutPage" class="page"></section>
+ <section id="calendarPage" class="page"></section>
+ <section id="nutritionPage" class="page"></section>
+ <section id="progressPage" class="page"></section>
+ <section id="coachPage" class="page"></section>
+ <section id="analyticsPage" class="page"></section>
+ <section id="libraryPage" class="page"></section>
+ <section id="settingsPage" class="page"></section>
+</main>
+<nav id="bottomNav" class="bottom-nav"></nav>
+</div>
+<div id="modalRoot"></div><div id="toast" class="toast"></div>
+<script src="assets/workouts.js"></script>
+<script src="assets/app.js"></script>
+</body>
+</html>

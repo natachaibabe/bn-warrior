@@ -1,0 +1,15 @@
+BN WARRIOR — เช็กลิสต์อัปโหลด GitHub Pages
+
+□ สร้าง Repository ชื่อ bn-warrior
+□ แตก ZIP
+□ เปิดโฟลเดอร์ BN_Warrior_GitHub_Pages_Ready
+□ เลือกไฟล์ทั้งหมดด้านใน แล้วลากขึ้น GitHub
+□ ตรวจว่า index.html อยู่หน้าแรกของ Repository
+□ Settings → Pages
+□ Source: Deploy from a branch
+□ Branch: main
+□ Folder: / (root)
+□ Save
+□ เปิด URL ที่ GitHub สร้างให้
+□ ติดตั้งบนมือถือ
+□ กด Backup หลังเริ่มกรอกข้อมูล
