@@ -627,3 +627,24 @@ input::placeholder,textarea::placeholder{color:#8d9292!important;opacity:1}
   .hall-grid{grid-template-columns:1fr 1fr}
   .compact-mode .hero{min-height:0!important}
 }
+
+
+/* =========================================================
+   BN WARRIOR V15 — PRIVATE GOOGLE DRIVE CLOUD
+   ========================================================= */
+.cloud-panel-host{margin-bottom:12px}
+.cloud-card{padding:14px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(180deg,#101212,#080909)}
+.cloud-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cloud-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.cloud-status{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;padding:11px;border:1px solid var(--line);border-radius:11px;background:#090a0a}
+.cloud-status-dot{width:12px;height:12px;border-radius:50%;background:#777;box-shadow:0 0 12px rgba(255,255,255,.12)}
+.cloud-status.connected .cloud-status-dot{background:var(--green);box-shadow:0 0 14px rgba(121,223,79,.35)}
+.cloud-status.syncing .cloud-status-dot{background:var(--orange);animation:cloudPulse .9s infinite alternate}
+.cloud-status.error .cloud-status-dot{background:var(--red)}
+.cloud-status strong{display:block}.cloud-status small{color:var(--muted)}
+.cloud-help{margin-top:10px;padding:10px;border-left:3px solid var(--orange);background:#120d09;color:var(--muted);line-height:1.55}
+.cloud-passphrase-note{font-size:11px;color:var(--muted)}
+.cloud-conflict{display:grid;gap:8px}
+.cloud-conflict button{width:100%}
+@keyframes cloudPulse{from{opacity:.35;transform:scale(.8)}to{opacity:1;transform:scale(1.05)}}
+@media(max-width:760px){.cloud-grid{grid-template-columns:1fr}}

@@ -2,7 +2,7 @@
 (function(){
 "use strict";
 const HERO_IMAGE="assets/hero.webp";
-const KEY="bn_warrior_v14_production";
+const KEY="bn_warrior_v15_private_cloud";
 let memoryStore={};
 const STORE={
  get(k){try{return localStorage.getItem(k)}catch(e){return memoryStore[k]||null}},
@@ -58,19 +58,31 @@ const DEFAULT={
  },
  done:{},logs:{},checkins:[],scans:[],prs:{},photos:{},
  nutritionByDate:{},
- notes:[],chat:[],dailyReviews:{},timeline:{},settings:{sound:true,compact:false},selectedDay:null
+ notes:[],chat:[],dailyReviews:{},timeline:{},
+ meta:{schemaVersion:15,updatedAt:null,deviceId:null},
+ cloud:{
+  clientId:"",
+  autoSync:true,
+  encrypted:true,
+  lastSyncAt:null,
+  lastCloudModifiedAt:null,
+  fileId:null
+ },
+ settings:{sound:true,compact:false},selectedDay:null
 }
 let state=loadState(),calendarDate=new Date(),timer={sec:90,id:null};
 const NAV=[["commandPage","Command"],["workoutPage","Workout"],["calendarPage","84 Days"],["nutritionPage","Nutrition"],["progressPage","Progress"],["coachPage","Commander"],["warriorPage","Warrior DNA"],["analyticsPage","Analytics"],["libraryPage","Library"],["settingsPage","More"]];
 function clone(v){return JSON.parse(JSON.stringify(v))}
 function loadState(){
  try{
-  const raw=STORE.get(KEY)||STORE.get("bn_warrior_v13_mobile_fix")||STORE.get("bn_warrior_v12_mobile_smart")||STORE.get("bn_warrior_v11_production")||STORE.get("bn_warrior_v10_pwa")||STORE.get("bn_warrior_v9_production")||STORE.get("bn_warrior_v8_final")||STORE.get("bn_warrior_v7_production")||STORE.get("bn_warrior_v6_final")||STORE.get("bn_warrior_v5_final")||STORE.get("bn_warrior_v42_hud")||STORE.get("bn_warrior_v4_hud")||STORE.get("bn_warrior_v3_rc")||STORE.get("bn_warrior_v2_portable");
+  const raw=STORE.get(KEY)||STORE.get("bn_warrior_v14_production")||STORE.get("bn_warrior_v13_mobile_fix")||STORE.get("bn_warrior_v12_mobile_smart")||STORE.get("bn_warrior_v11_production")||STORE.get("bn_warrior_v10_pwa")||STORE.get("bn_warrior_v9_production")||STORE.get("bn_warrior_v8_final")||STORE.get("bn_warrior_v7_production")||STORE.get("bn_warrior_v6_final")||STORE.get("bn_warrior_v5_final")||STORE.get("bn_warrior_v42_hud")||STORE.get("bn_warrior_v4_hud")||STORE.get("bn_warrior_v3_rc")||STORE.get("bn_warrior_v2_portable");
   if(!raw)return clone(DEFAULT);
   const old=JSON.parse(raw);
   const migrated=Object.assign(clone(DEFAULT),old,{
    profile:Object.assign({},DEFAULT.profile,old.profile||{}),
    settings:Object.assign({},DEFAULT.settings,old.settings||{}),
+   cloud:Object.assign({},DEFAULT.cloud,old.cloud||{}),
+   meta:Object.assign({},DEFAULT.meta,old.meta||{}),
    nutritionByDate:Object.assign({},old.nutritionByDate||{})
   });
   if(old.nutrition && !Object.keys(migrated.nutritionByDate).length){
@@ -85,10 +97,19 @@ function loadState(){
    });
   }
   delete migrated.nutrition;
+  if(!migrated.meta.deviceId)migrated.meta.deviceId=(crypto.randomUUID?crypto.randomUUID():"device-"+Date.now()+"-"+Math.random().toString(16).slice(2));
+  if(!migrated.meta.updatedAt)migrated.meta.updatedAt=new Date().toISOString();
   return migrated;
  }catch(e){console.warn("State migration failed",e);return clone(DEFAULT)}
 }
-function save(){const raw=JSON.stringify(state);STORE.set(KEY,raw);IDB.set(KEY,raw);updateStorageStatus()}
+function save(source="local"){
+ if(!state.meta)state.meta=clone(DEFAULT.meta);
+ if(!state.meta.deviceId)state.meta.deviceId=(crypto.randomUUID?crypto.randomUUID():"device-"+Date.now()+"-"+Math.random().toString(16).slice(2));
+ if(source==="local")state.meta.updatedAt=new Date().toISOString();
+ const raw=JSON.stringify(state);
+ STORE.set(KEY,raw);IDB.set(KEY,raw);updateStorageStatus();
+ window.dispatchEvent(new CustomEvent("bn-warrior:state-saved",{detail:{source,updatedAt:state.meta.updatedAt}}));
+}
 const $=id=>document.getElementById(id);
 const iso=d=>new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10);
 const dayIndex=d=>Math.floor((new Date(iso(d))-new Date(state.start))/86400000);
@@ -489,6 +510,7 @@ function renderSettings(){
   <div><label>ชื่อ<input id="profileName" value="${p.name}"></label><label>วันเริ่มโปรแกรม<input id="startDate" type="date" value="${state.start}"></label><label>น้ำหนักเป้าหมาย (kg)<input id="targetWeight" type="number" step=".1" value="${p.targetWeight}"></label><label>Body Fat เป้าหมาย (%)<input id="targetBf" type="number" step=".1" value="${p.targetBf}"></label></div>
   <div><label>Calories Target<input id="calorieTarget" type="number" value="${p.calorieTarget}"></label><label>Protein Target (g)<input id="proteinTarget" type="number" value="${p.proteinTarget}"></label><label>Carb Target (g)<input id="carbTarget" type="number" value="${p.carbTarget}"></label><label>Fat Target (g)<input id="fatTarget" type="number" value="${p.fatTarget}"></label><label>น้ำต่อกิโลกรัม (ml/kg)<input id="waterPerKg" type="number" value="${p.waterMlPerKg}"></label><label>น้ำเพิ่มในวันฝึก (ml)<input id="workoutWater" type="number" value="${p.workoutWaterMl}"></label><label>ส่วนสูง (cm)<input id="heightCm" type="number" value="${p.heightCm}"></label><label>อายุ<input id="profileAge" type="number" value="${p.age}"></label><label>ระดับกิจกรรม<select id="activityFactor"><option value="1.3" ${p.activityFactor==1.3?"selected":""}>เบา</option><option value="1.45" ${p.activityFactor==1.45?"selected":""}>ปานกลาง</option><option value="1.6" ${p.activityFactor==1.6?"selected":""}>ค่อนข้างสูง</option></select></label><label>Calorie Deficit (%)<input id="deficitPct" type="number" value="${p.calorieDeficitPct}"></label><label><input id="smartTargets" type="checkbox" ${p.smartTargets?"checked":""} style="width:auto"> ปรับเป้าสารอาหารอัตโนมัติ</label><label><input id="compactMode" type="checkbox" ${state.settings.compact?"checked":""} style="width:auto"> Compact Dashboard</label><p class="muted">ค่าที่ระบบแนะนำตอนนี้: ${smartTargetSummary()}</p><button id="applySmartTargets" class="btn ghost">คำนวณและใช้เป้าปัจจุบัน</button></div>
  </div>
+ <div id="cloudSyncPanel" class="cloud-panel-host"></div>
  <div class="mobile-more-grid" style="margin-bottom:12px">
   <button class="btn ghost" data-more-page="calendarPage">84 Days</button>
   <button class="btn ghost" data-more-page="coachPage">Commander</button>
@@ -520,6 +542,7 @@ function renderSettings(){
  };
  document.querySelectorAll("[data-more-page]").forEach(b=>b.onclick=()=>showPage(b.dataset.morePage));
  $("applySmartTargets").onclick=()=>{maybeApplySmartTargets(true);renderSettings()};
+ window.dispatchEvent(new CustomEvent("bn-warrior:settings-rendered"));
  $("exportData").onclick=exportData;$("importData").onchange=importData;$("resetData").onclick=()=>{if(confirm("ล้างข้อมูลทั้งหมดหรือไม่?")){state=clone(DEFAULT);save();renderAll()}};
 }
 function openGuide(ex){openModal('<div class="modal-card"><div class="space"><div><span class="eyebrow">EXERCISE GUIDE</span><h2>'+ex.name+'</h2></div><button data-close class="btn ghost">ปิด</button></div><div class="guide-grid"><div class="guide-demo">'+icon(ex.name)+'</div><div><h3>Target muscles</h3>'+ex.muscles.map(x=>'<span class="tag">'+x+'</span>').join("")+'<h3 style="margin-top:14px">Commander cue</h3><p class="muted">ควบคุมทุกครั้ง เกร็งแกนกลาง และหยุดก่อนฟอร์มเสียประมาณ 1–2 ครั้ง</p><a target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query='+encodeURIComponent(ex.video)+'"><button class="btn primary">เปิดคลิปสาธิต</button></a></div></div></div>')}
@@ -527,8 +550,47 @@ function openModal(content){$("modalRoot").innerHTML='<div class="modal show">'+
 function closeModal(){clearInterval(timer.id);$("modalRoot").innerHTML=""}
 function openTimer(sec){timer.sec=sec;openModal('<div class="timer-screen"><div><span class="eyebrow">REST TIMER</span><strong id="timerText">01:30</strong><div><button id="timerMinus" class="btn ghost">-15</button> <button id="timerPlus" class="btn ghost">+15</button> <button data-close class="btn danger">ปิด</button></div></div></div>');drawTimer();timer.id=setInterval(()=>{timer.sec--;drawTimer();if(timer.sec<=0){clearInterval(timer.id);navigator.vibrate?.([250,120,250]);toast("พักครบแล้ว")}},1000);$("timerMinus").onclick=()=>{timer.sec=Math.max(0,timer.sec-15);drawTimer()};$("timerPlus").onclick=()=>{timer.sec+=15;drawTimer()}}
 function drawTimer(){if($("timerText"))$("timerText").textContent=String(Math.floor(timer.sec/60)).padStart(2,"0")+":"+String(timer.sec%60).padStart(2,"0")}
-function exportData(){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:"application/json"}));a.download="BN-Warrior-V11-Backup-"+todayKey()+".json";a.click()}
+function exportData(){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(state,null,2)],{type:"application/json"}));a.download="BN-Warrior-V15-Backup-"+todayKey()+".json";a.click()}
 async function importData(){try{state=JSON.parse(await $("importData").files[0].text());save();renderAll();toast("นำเข้าข้อมูลแล้ว")}catch(e){alert("ไฟล์ไม่ถูกต้อง")}}
+
+window.BNWarriorBridge={
+ version:15,
+ getState(){return clone(state)},
+ getSyncPayload(){
+  const payload=clone(state);
+  delete payload.cloud;
+  return payload;
+ },
+ applySyncPayload(payload){
+  const localCloud=clone(state.cloud||DEFAULT.cloud);
+  state=Object.assign(clone(DEFAULT),payload||{},{
+   profile:Object.assign({},DEFAULT.profile,payload?.profile||{}),
+   settings:Object.assign({},DEFAULT.settings,payload?.settings||{}),
+   meta:Object.assign({},DEFAULT.meta,payload?.meta||{}),
+   cloud:localCloud,
+   nutritionByDate:Object.assign({},payload?.nutritionByDate||{})
+  });
+  save("remote");
+  renderAll();
+  toast("ดึงข้อมูลจาก Google Drive แล้ว");
+ },
+ getCloud(){return clone(state.cloud||DEFAULT.cloud)},
+ updateCloud(patch){
+  state.cloud=Object.assign({},DEFAULT.cloud,state.cloud||{},patch||{});
+  save("cloud-config");
+  renderSettings();
+ },
+ touchLocal(){
+  state.meta.updatedAt=new Date().toISOString();
+  save("local");
+ },
+ toast,
+ renderAll,
+ renderSettings,
+ todayKey,
+ exportData
+};
+
 $("backupSide").onclick=$("backupTop").onclick=exportData;
 window.addEventListener("error",e=>console.error("BN Warrior:",e.error||e.message));
 

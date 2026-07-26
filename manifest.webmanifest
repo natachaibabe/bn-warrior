@@ -1,7 +1,7 @@
 {
-  "name": "BN Warrior V14",
+  "name": "BN Warrior V15",
   "short_name": "BN Warrior",
-  "description": "Production military fitness PWA with Warrior DNA and smart coaching",
+  "description": "Private encrypted Google Drive sync fitness PWA",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

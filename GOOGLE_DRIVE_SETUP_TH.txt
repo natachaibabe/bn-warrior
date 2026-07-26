@@ -1,0 +1,68 @@
+BN WARRIOR V15 — ตั้งค่า Google Drive Sync แบบฟรี
+
+สำคัญ:
+- Google OAuth Client ID ไม่ใช่รหัสลับ สามารถอยู่ในเว็บ Public ได้
+- ห้ามใส่ Client Secret ลงในเว็บ
+- ข้อมูล BN Warrior ถูกเข้ารหัสในเครื่องก่อนส่งขึ้น Google Drive
+- ไฟล์เก็บใน appDataFolder ซึ่งซ่อนจากหน้า My Drive และแอปอื่นเข้าถึงไม่ได้
+- ต้องจำรหัสเข้ารหัสให้ได้ หากลืมจะถอดข้อมูล Cloud ไม่ได้
+
+ขั้นตอน Google Cloud
+
+1) เปิด Google Cloud Console
+   https://console.cloud.google.com/
+
+2) สร้าง Project ใหม่
+   ชื่อแนะนำ: BN Warrior Private
+
+3) เปิด Google Drive API
+   APIs & Services → Library → ค้นหา Google Drive API → Enable
+
+4) ตั้งค่า Google Auth Platform
+   Google Auth Platform → Branding
+   - App name: BN Warrior
+   - User support email: อีเมล Google ของคุณ
+   - Audience: External
+   - Contact email: อีเมลของคุณ
+
+5) เพิ่มตัวเองเป็น Test User
+   Google Auth Platform → Audience → Test users
+   เพิ่ม Gmail ที่คุณจะใช้ Sync
+
+6) สร้าง OAuth Client
+   Google Auth Platform → Clients → Create Client
+   Application type: Web application
+   Name: BN Warrior Web
+
+7) Authorized JavaScript origins
+   ใส่เฉพาะ Origin ของ GitHub Pages เช่น:
+   https://YOUR_GITHUB_USERNAME.github.io
+
+   ห้ามใส่ path /bn-warrior ต่อท้ายในช่อง Origin
+
+8) Create แล้ว Copy ค่า Client ID
+   รูปแบบ:
+   1234567890-xxxxxxxx.apps.googleusercontent.com
+
+9) อัปโหลด V15 ขึ้น GitHub Pages
+
+10) เปิด BN Warrior → More → Google Drive
+    - วาง Client ID
+    - ตั้งรหัสเข้ารหัสอย่างน้อย 8 ตัวอักษร
+    - กดบันทึก
+    - กดเชื่อม Google Drive
+    - เลือกบัญชีและอนุญาต
+    - กด Sync ตอนนี้
+
+ใช้งานหลายเครื่อง
+- ใช้ Google Account เดียวกัน
+- ใช้ Client ID เดียวกัน
+- ใช้รหัสเข้ารหัสเดียวกัน
+- เปิดแอปและกดเชื่อม Google บนแต่ละเครื่อง
+- หลังเชื่อม แอปจะ Sync ขณะเปิดอยู่
+- เมื่อ token หมดอายุหรือเปิดแอปใหม่ อาจต้องกดเชื่อม Google Drive อีกครั้ง
+
+ความปลอดภัย
+- Repository GitHub ยังเป็น Public แต่ไม่มีข้อมูลสุขภาพของคุณ
+- ข้อมูลจริงอยู่ในเบราว์เซอร์และไฟล์เข้ารหัสใน Google Drive App Data
+- Google เห็นไฟล์ ciphertext แต่ไม่รู้เนื้อหา หากรหัสเข้ารหัสแข็งแรง
