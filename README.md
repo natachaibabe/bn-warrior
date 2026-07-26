@@ -1,21 +1,11 @@
-# BN Warrior V15 Private Cloud
+# BN Warrior V16 Program Engine
 
-V15 เพิ่ม Google Drive Sync แบบเข้ารหัส โดยใช้ Google Drive `appDataFolder`.
-
-## ความสามารถ
-- Local-first: localStorage + IndexedDB
-- Encrypted Google Drive sync ด้วย AES-GCM 256-bit
-- PBKDF2 SHA-256 250,000 iterations
-- Sync มือถือ ↔ Desktop ขณะเปิดแอปและเชื่อม Google
-- Conflict detection จากเวลาแก้ไข
-- เลือกดึงจาก Drive หรือใช้ข้อมูลเครื่องนี้
-- ไม่มี backend และไม่มีค่าใช้จ่าย
-
-## ติดตั้ง
-อ่านไฟล์ `GOOGLE_DRIVE_SETUP_TH.txt`
-
-## GitHub Pages
-อัปโหลดไฟล์ทั้งหมดในโฟลเดอร์นี้ไปที่ root ของ Repository แล้วใช้:
-- Source: Deploy from a branch
-- Branch: main
-- Folder: / (root)
+เพิ่ม:
+- Program Setup Wizard พร้อมกำหนดวันเริ่ม
+- เลือก Military Lean, Body Recomposition, Lean Bulk, Health Reset, Hybrid Athlete
+- เลือกได้ว่าจะ Reset Workout, Nutrition และ Progress หรือเก็บข้อมูลเดิม
+- Food Editor แบบ Popup เดียว กรอกชื่อ/มื้อ/Calories/Protein/Carbs/Fat/หมายเหตุพร้อมกัน
+- แก้ไขรายการอาหารเดิมได้โดยไม่ต้องลบ
+- Quick Food / Favorites ค้างถาวรและแก้ไขหรือลบได้
+- Repeat Yesterday
+- Google Drive encrypted sync จาก V15 ยังอยู่ครบ

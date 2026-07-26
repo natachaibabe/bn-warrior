@@ -2,7 +2,7 @@
 (function(){
 "use strict";
 const HERO_IMAGE="assets/hero.webp";
-const KEY="bn_warrior_v15_private_cloud";
+const KEY="bn_warrior_v16_program_engine";
 let memoryStore={};
 const STORE={
  get(k){try{return localStorage.getItem(k)}catch(e){return memoryStore[k]||null}},
@@ -59,6 +59,15 @@ const DEFAULT={
  done:{},logs:{},checkins:[],scans:[],prs:{},photos:{},
  nutritionByDate:{},
  notes:[],chat:[],dailyReviews:{},timeline:{},
+ favoriteFoods:[
+  {id:"egg2",name:"ไข่ต้ม 2 ฟอง",cal:140,p:12,c:1,f:10,meal:"Breakfast"},
+  {id:"chicken150",name:"อกไก่ 150g",cal:250,p:45,c:0,f:6,meal:"Lunch"},
+  {id:"protein1",name:"All Plant Protein 1 ช้อน",cal:0,p:17,c:0,f:0,meal:"Snack"},
+  {id:"rice1",name:"ข้าว 1 ทัพพี",cal:130,p:3,c:28,f:0,meal:"Lunch"},
+  {id:"banana1",name:"กล้วย 1 ลูก",cal:105,p:1,c:27,f:0,meal:"Snack"}
+ ],
+ program:{id:"militaryLean",name:"Military Lean",durationDays:84,started:false},
+
  meta:{schemaVersion:15,updatedAt:null,deviceId:null},
  cloud:{
   clientId:"",
@@ -75,13 +84,15 @@ const NAV=[["commandPage","Command"],["workoutPage","Workout"],["calendarPage","
 function clone(v){return JSON.parse(JSON.stringify(v))}
 function loadState(){
  try{
-  const raw=STORE.get(KEY)||STORE.get("bn_warrior_v14_production")||STORE.get("bn_warrior_v13_mobile_fix")||STORE.get("bn_warrior_v12_mobile_smart")||STORE.get("bn_warrior_v11_production")||STORE.get("bn_warrior_v10_pwa")||STORE.get("bn_warrior_v9_production")||STORE.get("bn_warrior_v8_final")||STORE.get("bn_warrior_v7_production")||STORE.get("bn_warrior_v6_final")||STORE.get("bn_warrior_v5_final")||STORE.get("bn_warrior_v42_hud")||STORE.get("bn_warrior_v4_hud")||STORE.get("bn_warrior_v3_rc")||STORE.get("bn_warrior_v2_portable");
+  const raw=STORE.get(KEY)||STORE.get("bn_warrior_v15_private_cloud")||STORE.get("bn_warrior_v14_production")||STORE.get("bn_warrior_v13_mobile_fix")||STORE.get("bn_warrior_v12_mobile_smart")||STORE.get("bn_warrior_v11_production")||STORE.get("bn_warrior_v10_pwa")||STORE.get("bn_warrior_v9_production")||STORE.get("bn_warrior_v8_final")||STORE.get("bn_warrior_v7_production")||STORE.get("bn_warrior_v6_final")||STORE.get("bn_warrior_v5_final")||STORE.get("bn_warrior_v42_hud")||STORE.get("bn_warrior_v4_hud")||STORE.get("bn_warrior_v3_rc")||STORE.get("bn_warrior_v2_portable");
   if(!raw)return clone(DEFAULT);
   const old=JSON.parse(raw);
   const migrated=Object.assign(clone(DEFAULT),old,{
    profile:Object.assign({},DEFAULT.profile,old.profile||{}),
    settings:Object.assign({},DEFAULT.settings,old.settings||{}),
    cloud:Object.assign({},DEFAULT.cloud,old.cloud||{}),
+   program:Object.assign({},DEFAULT.program,old.program||{}),
+   favoriteFoods:Array.isArray(old.favoriteFoods)&&old.favoriteFoods.length?old.favoriteFoods:clone(DEFAULT.favoriteFoods),
    meta:Object.assign({},DEFAULT.meta,old.meta||{}),
    nutritionByDate:Object.assign({},old.nutritionByDate||{})
   });
@@ -117,6 +128,60 @@ const todayIndex=()=>Math.max(0,Math.min(83,dayIndex(new Date())));
 const doneCount=()=>Object.values(state.done).filter(Boolean).length;
 function streak(){let s=0;for(let i=todayIndex();i>=0;i--){if(state.done[i+1])s++;else break}return s}
 
+
+const PROGRAMS={
+ militaryLean:{id:"militaryLean",name:"Military Lean",durationDays:84,targetWeightDelta:-4.5,targetBf:12.5,deficit:15,activity:1.45,description:"ลดไขมัน รักษากล้าม Strength + Zone 2"},
+ bodyRecomp:{id:"bodyRecomp",name:"Body Recomposition",durationDays:84,targetWeightDelta:-2,targetBf:14,deficit:8,activity:1.45,description:"ลดไขมันพร้อมเพิ่มกล้ามแบบค่อยเป็นค่อยไป"},
+ leanBulk:{id:"leanBulk",name:"Lean Bulk",durationDays:112,targetWeightDelta:4,targetBf:16,deficit:-8,activity:1.55,description:"เพิ่มมวลกล้ามแบบคุมไขมัน"},
+ healthReset:{id:"healthReset",name:"Health Reset",durationDays:56,targetWeightDelta:-2,targetBf:18,deficit:10,activity:1.3,description:"เริ่มต้นใหม่ เน้นความสม่ำเสมอและสุขภาพ"},
+ hybridAthlete:{id:"hybridAthlete",name:"Hybrid Athlete",durationDays:84,targetWeightDelta:-1,targetBf:14,deficit:5,activity:1.6,description:"เวท + วิ่ง + ความฟิตโดยรวม"}
+};
+function applyProgram(programId,startDate,opts={}){
+ const preset=PROGRAMS[programId]||PROGRAMS.militaryLean,l=latest(),p=state.profile;
+ state.program={id:preset.id,name:preset.name,durationDays:preset.durationDays,started:true,startedAt:startDate};
+ state.start=startDate;
+ p.activityFactor=preset.activity;
+ p.calorieDeficitPct=preset.deficit;
+ p.targetWeight=Math.max(40,+(+(l.weight||67.1)+preset.targetWeightDelta).toFixed(1));
+ p.targetWeightLabel=p.targetWeight.toFixed(1)+" kg";
+ p.targetBf=preset.targetBf;
+ p.targetBfLabel=p.targetBf.toFixed(1)+"% BF";
+ p.lastSmartTargetWeight=null;
+ if(opts.resetWorkout!==false){state.done={};state.logs={};state.prs={};state.selectedDay=null}
+ if(opts.resetNutrition){state.nutritionByDate={}}
+ if(opts.resetProgress){state.checkins=[];state.scans=[];state.photos={}}
+ maybeApplySmartTargets(true);
+ save();
+ renderAll();
+ toast("เริ่มโปรแกรม "+preset.name+" แล้ว");
+}
+function openProgramWizard(){
+ const current=state.program||DEFAULT.program;
+ const root=document.createElement("div");root.className="food-modal show";
+ root.innerHTML=`<div class="food-modal-card program-wizard">
+  <div class="space"><div><span class="eyebrow">MISSION SETUP</span><h2>เลือกโปรแกรม</h2></div><button class="modal-x" data-close>×</button></div>
+  <div class="program-grid">${Object.values(PROGRAMS).map(x=>`<button class="program-option ${current.id===x.id?"selected":""}" data-program="${x.id}"><strong>${x.name}</strong><span>${x.durationDays} วัน</span><small>${x.description}</small></button>`).join("")}</div>
+  <label>วันเริ่มโปรแกรม<input id="programStartDate" type="date" value="${state.start||todayKey()}"></label>
+  <div class="reset-options">
+   <label><input id="resetWorkout" type="checkbox" checked> เริ่ม Workout / XP / Timeline ใหม่</label>
+   <label><input id="resetNutrition" type="checkbox"> ล้างประวัติโภชนาการ</label>
+   <label><input id="resetProgress" type="checkbox"> ล้างน้ำหนัก รูป และ Progress</label>
+  </div>
+  <div class="modal-actions"><button class="btn ghost" data-close>ยกเลิก</button><button id="confirmProgram" class="btn primary">เริ่มโปรแกรม</button></div>
+ </div>`;
+ document.body.appendChild(root);
+ let selected=current.id||"militaryLean";
+ root.querySelectorAll("[data-program]").forEach(b=>b.onclick=()=>{selected=b.dataset.program;root.querySelectorAll("[data-program]").forEach(x=>x.classList.toggle("selected",x===b))});
+ root.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>root.remove());
+ root.querySelector("#confirmProgram").onclick=()=>{
+  applyProgram(selected,root.querySelector("#programStartDate").value||todayKey(),{
+   resetWorkout:root.querySelector("#resetWorkout").checked,
+   resetNutrition:root.querySelector("#resetNutrition").checked,
+   resetProgress:root.querySelector("#resetProgress").checked
+  });
+  root.remove();
+ };
+}
 function todayKey(){return iso(new Date())}
 function nutritionFor(date=todayKey()){
  if(!state.nutritionByDate[date])state.nutritionByDate[date]=clone(EMPTY_NUTRITION);
@@ -409,33 +474,94 @@ function renderCalendar(){
  document.querySelectorAll("[data-calendar-day]").forEach(b=>b.onclick=()=>{state.selectedDay=+b.dataset.calendarDay;save();showPage("workoutPage")});
  $("calPrev").onclick=()=>{calendarDate=new Date(y,m-1,1);renderCalendar()};$("calNext").onclick=()=>{calendarDate=new Date(y,m+1,1);renderCalendar()};
 }
-const QUICK=[["ไข่ต้ม 2 ฟอง",140,12,1,10],["อกไก่ 150g",250,45,0,6],["โปรตีนเชค",130,25,4,2],["ข้าว 1 ทัพพี",130,3,28,0],["กล้วย 1 ลูก",105,1,27,0],["กรีกโยเกิร์ต",120,15,8,2]];
+
+function favoriteFoods(){return state.favoriteFoods||[]}
 function renderNutrition(){
  const date=state.selectedNutritionDate||todayKey(),n=nutritionFor(date),p=state.profile;
  $("nutritionPage").innerHTML=`
  <div class="card"><div class="space"><div><span class="eyebrow">FUEL STATUS</span><h2>โภชนาการรายวัน</h2></div><div class="nutrition-date"><button id="nutritionPrev" class="btn ghost">‹</button><input id="nutritionDate" type="date" value="${date}"><button id="nutritionNext" class="btn ghost">›</button></div></div><div class="macro-rings" style="margin-top:14px">${macroRing("Calories",n.calories,p.calorieTarget,"kcal","#ff6a00")}${macroRing("Protein",n.protein,p.proteinTarget,"g","#79df4f")}${macroRing("Carbs",n.carbs,p.carbTarget,"g","#4ca8ff")}${macroRing("Fat",n.fat,p.fatTarget,"g","#ffc857")}${macroRing("Water",n.waterMl,waterGoalMl(),"L","#50cfff")}</div></div>
  <div class="two grid" style="margin-top:11px">
-  <div class="card"><div class="space"><div><span class="eyebrow">MEALS</span><h2>มื้ออาหาร</h2></div><button id="customFood" class="btn ghost">+ เพิ่มอาหาร</button></div>${["Breakfast","Lunch","Dinner","Snack"].map((x,i)=>'<button class="meal '+(n.meals[i]?"done":"")+'" data-meal="'+i+'"><strong>'+x+'</strong><span>'+(n.meals[i]?"✓":"○")+'</span></button>').join("")}<div class="quick">${QUICK.map((x,i)=>'<button data-quick="'+i+'">+ '+x[0]+'</button>').join("")}</div></div>
+  <div class="card">
+   <div class="space"><div><span class="eyebrow">QUICK FOOD</span><h2>รายการโปรด</h2></div><div><button id="repeatYesterday" class="btn ghost">กินเหมือนเมื่อวาน</button> <button id="customFood" class="btn primary">+ เพิ่มอาหาร</button></div></div>
+   <div class="favorite-food-grid">${favoriteFoods().map(f=>`<div class="favorite-food"><button data-favorite-add="${f.id}"><strong>${f.name}</strong><small>${f.cal} kcal • P${f.p} C${f.c} F${f.f}</small></button><button class="favorite-edit" data-favorite-edit="${f.id}">แก้ไข</button></div>`).join("")||'<p class="muted">ยังไม่มีรายการโปรด</p>'}</div>
+   <div class="meal-status">${["Breakfast","Lunch","Dinner","Snack"].map((x,i)=>'<button class="meal '+(n.meals[i]?"done":"")+'" data-meal="'+i+'"><strong>'+x+'</strong><span>'+(n.meals[i]?"✓":"○")+'</span></button>').join("")}</div>
+  </div>
   <div class="grid">
    <div class="card"><span class="eyebrow">HYDRATION</span><h2>${(n.waterMl/1000).toFixed(2)} / ${(waterGoalMl()/1000).toFixed(2)} L</h2><div class="bar"><i style="width:${pct(n.waterMl,waterGoalMl())}%"></i></div><div class="water-controls" style="margin-top:12px"><button data-water-add="100">+100 ml</button><button data-water-add="250">+250 ml</button><button data-water-add="500">+500 ml</button><button data-water-add="750">+750 ml</button><button data-water-add="1000">+1 L</button><button id="customWater">Custom</button></div><button id="undoWater" class="btn ghost" style="margin-top:10px">-250 ml</button></div>
-   <div class="card"><span class="eyebrow">COMMANDER SUGGESTION</span><div class="order"><div><strong>Protein remaining</strong><div class="muted">${Math.max(0,p.proteinTarget-n.protein)} g</div></div></div><div class="order"><div><strong>Carbs remaining</strong><div class="muted">${Math.max(0,p.carbTarget-n.carbs)} g</div></div></div><div class="order"><div><strong>Fat remaining</strong><div class="muted">${Math.max(0,p.fatTarget-n.fat)} g</div></div></div><div class="order"><div><strong>Water remaining</strong><div class="muted">${Math.max(0,waterGoalMl()-n.waterMl)} ml</div></div></div></div>
-   <div class="card"><span class="eyebrow">FOOD LOG</span>${n.foods.length?n.foods.slice().reverse().map(f=>'<div class="order"><div><strong>'+f.name+'</strong><div class="muted">'+f.cal+' kcal • P'+f.p+' C'+f.c+' F'+f.f+'</div></div><button class="btn ghost" data-remove-food="'+f.id+'">ลบ</button></div>').join(""):'<p class="muted">ยังไม่มีอาหารที่บันทึกในวันนี้</p>'}</div>
+   <div class="card"><span class="eyebrow">FOOD LOG</span>${n.foods.length?n.foods.slice().reverse().map(f=>`<div class="food-log-row"><div><strong>${f.name}</strong><div class="muted">${f.meal||"Meal"} • ${f.cal} kcal • P${f.p} C${f.c} F${f.f}</div></div><div><button class="btn ghost" data-edit-food="${f.id}">แก้ไข</button><button class="btn danger" data-remove-food="${f.id}">ลบ</button></div></div>`).join(""):'<p class="muted">ยังไม่มีอาหารที่บันทึกในวันนี้</p>'}</div>
   </div>
  </div>`;
  document.querySelectorAll("[data-meal]").forEach(b=>b.onclick=()=>{n.meals[b.dataset.meal]=!n.meals[b.dataset.meal];save();renderNutrition()});
- document.querySelectorAll("[data-quick]").forEach(b=>b.onclick=()=>addFood(QUICK[+b.dataset.quick],date));
- document.querySelectorAll("[data-water-add]").forEach(b=>b.onclick=()=>{n.waterMl+=+b.dataset.waterAdd;save();renderNutrition()});
+ document.querySelectorAll("[data-favorite-add]").forEach(b=>b.onclick=()=>{const f=favoriteFoods().find(x=>String(x.id)===b.dataset.favoriteAdd);if(f)openFoodModal({date,food:Object.assign({},f,{id:null}),favoriteId:f.id})});
+ document.querySelectorAll("[data-favorite-edit]").forEach(b=>b.onclick=()=>{const f=favoriteFoods().find(x=>String(x.id)===b.dataset.favoriteEdit);if(f)openFavoriteModal(f)});
+ document.querySelectorAll("[data-edit-food]").forEach(b=>b.onclick=()=>{const f=n.foods.find(x=>x.id===+b.dataset.editFood);if(f)openFoodModal({date,food:f})});
  document.querySelectorAll("[data-remove-food]").forEach(b=>b.onclick=()=>removeFood(+b.dataset.removeFood,date));
- $("customFood").onclick=()=>customFood(date);
+ document.querySelectorAll("[data-water-add]").forEach(b=>b.onclick=()=>{n.waterMl+=+b.dataset.waterAdd;save();renderNutrition()});
+ $("customFood").onclick=()=>openFoodModal({date});
+ $("repeatYesterday").onclick=()=>repeatYesterday(date);
  $("customWater").onclick=()=>{const ml=+(prompt("ปริมาณน้ำ (ml)",350)||0);if(ml>0){n.waterMl+=ml;save();renderNutrition()}};
  $("undoWater").onclick=()=>{n.waterMl=Math.max(0,n.waterMl-250);save();renderNutrition()};
  $("nutritionDate").onchange=()=>{state.selectedNutritionDate=$("nutritionDate").value;renderNutrition()};
  $("nutritionPrev").onclick=()=>shiftNutritionDate(-1);$("nutritionNext").onclick=()=>shiftNutritionDate(1);
 }
 function shiftNutritionDate(delta){const d=new Date((state.selectedNutritionDate||todayKey())+"T12:00:00");d.setDate(d.getDate()+delta);state.selectedNutritionDate=iso(d);renderNutrition()}
-function addFood(f,date=todayKey()){const n=nutritionFor(date),[name,cal,p,c,fat]=f;n.foods.push({id:Date.now(),name,cal,p,c,f:fat});n.calories+=cal;n.protein+=p;n.carbs+=c;n.fat+=fat;save();renderNutrition()}
-function removeFood(id,date=todayKey()){const n=nutritionFor(date),f=n.foods.find(x=>x.id===id);if(!f)return;n.foods=n.foods.filter(x=>x.id!==id);n.calories=Math.max(0,n.calories-f.cal);n.protein=Math.max(0,n.protein-f.p);n.carbs=Math.max(0,n.carbs-f.c);n.fat=Math.max(0,n.fat-f.f);save();renderNutrition()}
-function customFood(date=todayKey()){const name=prompt("ชื่ออาหาร");if(!name)return;addFood([name,+(prompt("Calories",0)||0),+(prompt("Protein g",0)||0),+(prompt("Carbs g",0)||0),+(prompt("Fat g",0)||0)],date)}
+function recalcNutrition(n){n.calories=n.foods.reduce((a,x)=>a+(+x.cal||0),0);n.protein=n.foods.reduce((a,x)=>a+(+x.p||0),0);n.carbs=n.foods.reduce((a,x)=>a+(+x.c||0),0);n.fat=n.foods.reduce((a,x)=>a+(+x.f||0),0)}
+function addOrUpdateFood(food,date=todayKey()){
+ const n=nutritionFor(date),clean={id:food.id||Date.now(),name:food.name.trim(),cal:+food.cal||0,p:+food.p||0,c:+food.c||0,f:+food.f||0,meal:food.meal||"Meal",note:food.note||""};
+ const idx=n.foods.findIndex(x=>x.id===clean.id);
+ if(idx>=0)n.foods[idx]=clean;else n.foods.push(clean);
+ recalcNutrition(n);save();renderNutrition();
+}
+function removeFood(id,date=todayKey()){const n=nutritionFor(date);n.foods=n.foods.filter(x=>x.id!==id);recalcNutrition(n);save();renderNutrition()}
+function repeatYesterday(date){
+ const d=new Date(date+"T12:00:00");d.setDate(d.getDate()-1);const prev=nutritionFor(iso(d)),n=nutritionFor(date);
+ if(!prev.foods.length)return toast("เมื่อวานยังไม่มีรายการอาหาร");
+ if(!confirm("เพิ่มอาหารทั้งหมดจากเมื่อวานเข้าวันนี้หรือไม่?"))return;
+ prev.foods.forEach(f=>n.foods.push(Object.assign({},f,{id:Date.now()+Math.random()})));
+ recalcNutrition(n);save();renderNutrition();toast("เพิ่มรายการจากเมื่อวานแล้ว");
+}
+function openFoodModal({date=todayKey(),food=null,favoriteId=null}={}){
+ const editing=!!food?.id,base=Object.assign({name:"",cal:0,p:0,c:0,f:0,meal:"Breakfast",note:""},food||{});
+ const root=document.createElement("div");root.className="food-modal show";
+ root.innerHTML=`<div class="food-modal-card">
+  <div class="space"><div><span class="eyebrow">${editing?"EDIT FOOD":"ADD FOOD"}</span><h2>${editing?"แก้ไขรายการอาหาร":"เพิ่มอาหาร"}</h2></div><button class="modal-x" data-close>×</button></div>
+  <div class="food-form-grid">
+   <label class="food-name-field">ชื่ออาหาร<input id="foodName" value="${String(base.name).replace(/"/g,"&quot;")}" placeholder="เช่น BodyKey + Protein"></label>
+   <label>มื้อ<select id="foodMeal">${["Breakfast","Lunch","Dinner","Snack"].map(x=>`<option ${base.meal===x?"selected":""}>${x}</option>`).join("")}</select></label>
+   <label>Calories<input id="foodCal" type="number" step="1" value="${base.cal}"></label>
+   <label>Protein (g)<input id="foodP" type="number" step=".1" value="${base.p}"></label>
+   <label>Carbs (g)<input id="foodC" type="number" step=".1" value="${base.c}"></label>
+   <label>Fat (g)<input id="foodF" type="number" step=".1" value="${base.f}"></label>
+   <label class="food-note-field">หมายเหตุ<textarea id="foodNote" placeholder="ปริมาณ / ยี่ห้อ / รายละเอียด">${base.note||""}</textarea></label>
+  </div>
+  <label class="favorite-check"><input id="saveFavorite" type="checkbox" style="width:auto" ${favoriteId?"":"checked"}> บันทึก/อัปเดตเป็น Quick Food ด้วย</label>
+  <div class="modal-actions"><button class="btn ghost" data-close>ยกเลิก</button><button id="saveFoodModal" class="btn primary">${editing?"บันทึกการแก้ไข":"เพิ่มรายการ"}</button></div>
+ </div>`;
+ document.body.appendChild(root);
+ root.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>root.remove());
+ root.querySelector("#saveFoodModal").onclick=()=>{
+  const item={id:base.id||null,name:root.querySelector("#foodName").value.trim(),meal:root.querySelector("#foodMeal").value,cal:+root.querySelector("#foodCal").value||0,p:+root.querySelector("#foodP").value||0,c:+root.querySelector("#foodC").value||0,f:+root.querySelector("#foodF").value||0,note:root.querySelector("#foodNote").value.trim()};
+  if(!item.name)return alert("กรุณาใส่ชื่ออาหาร");
+  addOrUpdateFood(item,date);
+  if(root.querySelector("#saveFavorite").checked)saveFavorite(item,favoriteId);
+  root.remove();
+ };
+}
+function saveFavorite(item,favoriteId=null){
+ const clean={id:favoriteId||("fav-"+Date.now()),name:item.name,cal:+item.cal||0,p:+item.p||0,c:+item.c||0,f:+item.f||0,meal:item.meal||"Breakfast"};
+ const idx=state.favoriteFoods.findIndex(x=>String(x.id)===String(clean.id));
+ if(idx>=0)state.favoriteFoods[idx]=clean;else state.favoriteFoods.push(clean);
+ save();
+}
+function openFavoriteModal(f){
+ const root=document.createElement("div");root.className="food-modal show";
+ root.innerHTML=`<div class="food-modal-card"><div class="space"><div><span class="eyebrow">EDIT QUICK FOOD</span><h2>แก้ไขรายการโปรด</h2></div><button class="modal-x" data-close>×</button></div>
+ <div class="food-form-grid"><label class="food-name-field">ชื่อ<input id="favName" value="${String(f.name).replace(/"/g,"&quot;")}"></label><label>มื้อ<select id="favMeal">${["Breakfast","Lunch","Dinner","Snack"].map(x=>`<option ${f.meal===x?"selected":""}>${x}</option>`).join("")}</select></label><label>Calories<input id="favCal" type="number" value="${f.cal}"></label><label>Protein<input id="favP" type="number" step=".1" value="${f.p}"></label><label>Carbs<input id="favC" type="number" step=".1" value="${f.c}"></label><label>Fat<input id="favF" type="number" step=".1" value="${f.f}"></label></div>
+ <div class="modal-actions"><button id="deleteFavorite" class="btn danger">ลบรายการโปรด</button><button class="btn ghost" data-close>ยกเลิก</button><button id="saveFavoriteEdit" class="btn primary">บันทึก</button></div></div>`;
+ document.body.appendChild(root);root.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>root.remove());
+ root.querySelector("#saveFavoriteEdit").onclick=()=>{saveFavorite({name:root.querySelector("#favName").value,meal:root.querySelector("#favMeal").value,cal:+root.querySelector("#favCal").value,p:+root.querySelector("#favP").value,c:+root.querySelector("#favC").value,f:+root.querySelector("#favF").value},f.id);root.remove();renderNutrition()};
+ root.querySelector("#deleteFavorite").onclick=()=>{if(confirm("ลบ Quick Food นี้หรือไม่?")){state.favoriteFoods=state.favoriteFoods.filter(x=>String(x.id)!==String(f.id));save();root.remove();renderNutrition()}};
+}
 function renderProgress(){
  const l=latest();
  $("progressPage").innerHTML='<div class="two grid"><div class="card"><span class="eyebrow">WEEKLY CHECK-IN</span><h2>บันทึกผล</h2><input id="checkDate" type="date" value="'+iso(new Date())+'"><input id="checkWeight" type="number" step=".1" placeholder="น้ำหนัก"><input id="checkBf" type="number" step=".1" placeholder="Body Fat %"><input id="checkWaist" type="number" step=".1" placeholder="รอบเอว"><input id="checkSleep" type="number" step=".5" placeholder="นอน ชม."><button id="saveCheck" class="btn primary">บันทึก</button></div><div class="card"><span class="eyebrow">BODY STATUS</span>'+stat("Weight",l.weight+" kg")+stat("Body Fat",(l.bf||"-")+"%")+stat("Waist",(l.waist||"-")+" cm")+stat("Readiness",readiness())+'</div></div><div class="chart-grid" style="margin-top:11px"><div class="card chart"><span class="eyebrow">WEIGHT TREND</span>'+chart(state.checkins.map(x=>({label:x.date,v:x.weight}))," kg")+'</div><div class="card chart"><span class="eyebrow">BODY FAT TREND</span>'+chart(state.checkins.map(x=>({label:x.date,v:x.bf})),"%")+'</div></div><div class="card" style="margin-top:11px"><span class="eyebrow">PROGRESS PHOTOS</span><div class="photo-grid" style="margin-top:10px">'+photoSlots()+'</div></div><div class="card" style="margin-top:11px"><span class="eyebrow">PERSONAL RECORDS</span><div class="pr-grid" style="margin-top:10px">'+(Object.entries(state.prs).length?Object.entries(state.prs).map(([n,p])=>'<div class="pr"><span class="muted">'+n+'</span><strong>'+p.weight+' kg × '+p.reps+'</strong><small>'+p.date+'</small></div>').join(""):'<p class="muted">ยังไม่มี PR</p>')+'</div></div>';
@@ -510,6 +636,7 @@ function renderSettings(){
   <div><label>ชื่อ<input id="profileName" value="${p.name}"></label><label>วันเริ่มโปรแกรม<input id="startDate" type="date" value="${state.start}"></label><label>น้ำหนักเป้าหมาย (kg)<input id="targetWeight" type="number" step=".1" value="${p.targetWeight}"></label><label>Body Fat เป้าหมาย (%)<input id="targetBf" type="number" step=".1" value="${p.targetBf}"></label></div>
   <div><label>Calories Target<input id="calorieTarget" type="number" value="${p.calorieTarget}"></label><label>Protein Target (g)<input id="proteinTarget" type="number" value="${p.proteinTarget}"></label><label>Carb Target (g)<input id="carbTarget" type="number" value="${p.carbTarget}"></label><label>Fat Target (g)<input id="fatTarget" type="number" value="${p.fatTarget}"></label><label>น้ำต่อกิโลกรัม (ml/kg)<input id="waterPerKg" type="number" value="${p.waterMlPerKg}"></label><label>น้ำเพิ่มในวันฝึก (ml)<input id="workoutWater" type="number" value="${p.workoutWaterMl}"></label><label>ส่วนสูง (cm)<input id="heightCm" type="number" value="${p.heightCm}"></label><label>อายุ<input id="profileAge" type="number" value="${p.age}"></label><label>ระดับกิจกรรม<select id="activityFactor"><option value="1.3" ${p.activityFactor==1.3?"selected":""}>เบา</option><option value="1.45" ${p.activityFactor==1.45?"selected":""}>ปานกลาง</option><option value="1.6" ${p.activityFactor==1.6?"selected":""}>ค่อนข้างสูง</option></select></label><label>Calorie Deficit (%)<input id="deficitPct" type="number" value="${p.calorieDeficitPct}"></label><label><input id="smartTargets" type="checkbox" ${p.smartTargets?"checked":""} style="width:auto"> ปรับเป้าสารอาหารอัตโนมัติ</label><label><input id="compactMode" type="checkbox" ${state.settings.compact?"checked":""} style="width:auto"> Compact Dashboard</label><p class="muted">ค่าที่ระบบแนะนำตอนนี้: ${smartTargetSummary()}</p><button id="applySmartTargets" class="btn ghost">คำนวณและใช้เป้าปัจจุบัน</button></div>
  </div>
+ <div class="card program-summary" style="margin-bottom:12px"><div class="space"><div><span class="eyebrow">CURRENT PROGRAM</span><h2>${state.program?.name||"Military Lean"}</h2><p class="muted">เริ่ม ${state.start} • ${state.program?.durationDays||84} วัน</p></div><button id="changeProgram" class="btn primary">เลือก / เริ่มโปรแกรม</button></div></div>
  <div id="cloudSyncPanel" class="cloud-panel-host"></div>
  <div class="mobile-more-grid" style="margin-bottom:12px">
   <button class="btn ghost" data-more-page="calendarPage">84 Days</button>
@@ -542,6 +669,7 @@ function renderSettings(){
  };
  document.querySelectorAll("[data-more-page]").forEach(b=>b.onclick=()=>showPage(b.dataset.morePage));
  $("applySmartTargets").onclick=()=>{maybeApplySmartTargets(true);renderSettings()};
+ $("changeProgram").onclick=openProgramWizard;
  window.dispatchEvent(new CustomEvent("bn-warrior:settings-rendered"));
  $("exportData").onclick=exportData;$("importData").onchange=importData;$("resetData").onclick=()=>{if(confirm("ล้างข้อมูลทั้งหมดหรือไม่?")){state=clone(DEFAULT);save();renderAll()}};
 }
