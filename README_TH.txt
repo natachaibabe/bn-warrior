@@ -19,3 +19,11 @@ BN WARRIOR V11 PRODUCTION
 - อัปโหลดโฟลเดอร์ขึ้น GitHub Pages / Cloudflare Pages / Netlify แบบฟรี
 - Android: เปิดเว็บแล้วกดติดตั้ง
 - iPhone: Safari → Share → Add to Home Screen
+
+
+V12 เพิ่มเติม:
+- Mobile Hero กระชับขึ้นและ Digital Target ไม่ทับปุ่ม
+- Bottom Navigation มือถือเหลือ 5 เมนูหลัก
+- Calendar / Commander / Analytics / Library อยู่ใน More
+- Smart Nutrition Target คำนวณจากน้ำหนักเฉลี่ยล่าสุด ส่วนสูง อายุ กิจกรรม และ Calorie Deficit
+- ปรับเป้าอัตโนมัติเมื่อค่าน้ำหนักเฉลี่ยเปลี่ยนเกิน Threshold

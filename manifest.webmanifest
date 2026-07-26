@@ -1,8 +1,8 @@
 {
-  "name": "BN Warrior V11",
+  "name": "BN Warrior V12",
   "short_name": "BN Warrior",
-  "description": "Personal 84-day military fitness operating system",
-  "start_url": "./",
+  "description": "Personal 84-day fitness PWA with smart nutrition targets",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#050505",

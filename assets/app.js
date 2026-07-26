@@ -2,7 +2,7 @@
 (function(){
 "use strict";
 const HERO_IMAGE="assets/hero.webp";
-const KEY="bn_warrior_v11_production";
+const KEY="bn_warrior_v12_mobile_smart";
 let memoryStore={};
 const STORE={
  get(k){try{return localStorage.getItem(k)}catch(e){return memoryStore[k]||null}},
@@ -46,7 +46,15 @@ const DEFAULT={
   fatTarget:60,
   waterMlPerKg:35,
   workoutWaterMl:700,
-  sleepTarget:7
+  sleepTarget:7,
+  heightCm:167,
+  age:30,
+  sex:"male",
+  activityFactor:1.45,
+  calorieDeficitPct:15,
+  smartTargets:true,
+  smartTargetThresholdKg:1.0,
+  lastSmartTargetWeight:null
  },
  done:{},logs:{},checkins:[],scans:[],prs:{},photos:{},
  nutritionByDate:{},
@@ -57,7 +65,7 @@ const NAV=[["commandPage","Command"],["workoutPage","Workout"],["calendarPage","
 function clone(v){return JSON.parse(JSON.stringify(v))}
 function loadState(){
  try{
-  const raw=STORE.get(KEY)||STORE.get("bn_warrior_v10_pwa")||STORE.get("bn_warrior_v9_production")||STORE.get("bn_warrior_v8_final")||STORE.get("bn_warrior_v7_production")||STORE.get("bn_warrior_v6_final")||STORE.get("bn_warrior_v5_final")||STORE.get("bn_warrior_v42_hud")||STORE.get("bn_warrior_v4_hud")||STORE.get("bn_warrior_v3_rc")||STORE.get("bn_warrior_v2_portable");
+  const raw=STORE.get(KEY)||STORE.get("bn_warrior_v11_production")||STORE.get("bn_warrior_v10_pwa")||STORE.get("bn_warrior_v9_production")||STORE.get("bn_warrior_v8_final")||STORE.get("bn_warrior_v7_production")||STORE.get("bn_warrior_v6_final")||STORE.get("bn_warrior_v5_final")||STORE.get("bn_warrior_v42_hud")||STORE.get("bn_warrior_v4_hud")||STORE.get("bn_warrior_v3_rc")||STORE.get("bn_warrior_v2_portable");
   if(!raw)return clone(DEFAULT);
   const old=JSON.parse(raw);
   const migrated=Object.assign(clone(DEFAULT),old,{
@@ -94,6 +102,40 @@ function nutritionFor(date=todayKey()){
  return state.nutritionByDate[date];
 }
 function nutritionToday(){return nutritionFor(todayKey())}
+
+function recentAverageWeight(days=7){
+ const list=(state.checkins||[]).filter(x=>x.weight).slice(-days);
+ if(!list.length)return +latest().weight||67.1;
+ return list.reduce((a,x)=>a+(+x.weight||0),0)/list.length;
+}
+function calculateSmartTargets(weight=recentAverageWeight()){
+ const p=state.profile;
+ const h=+p.heightCm||167,age=+p.age||30;
+ const bmr=p.sex==="female"
+  ?10*weight+6.25*h-5*age-161
+  :10*weight+6.25*h-5*age+5;
+ const tdee=bmr*(+p.activityFactor||1.45);
+ const calories=Math.round((tdee*(1-(+p.calorieDeficitPct||15)/100))/50)*50;
+ const protein=Math.round(weight*2.0/5)*5;
+ const fat=Math.round(weight*.8/5)*5;
+ const carbs=Math.max(0,Math.round((calories-protein*4-fat*9)/4/5)*5);
+ return {calories,protein,carbs,fat,weight:+weight.toFixed(1)};
+}
+function maybeApplySmartTargets(force=false){
+ const p=state.profile;
+ if(!p.smartTargets&&!force)return false;
+ const avg=recentAverageWeight(),base=p.lastSmartTargetWeight==null?avg:+p.lastSmartTargetWeight;
+ if(!force&&Math.abs(avg-base)<(+p.smartTargetThresholdKg||1))return false;
+ const t=calculateSmartTargets(avg);
+ p.calorieTarget=t.calories;p.proteinTarget=t.protein;p.carbTarget=t.carbs;p.fatTarget=t.fat;p.lastSmartTargetWeight=t.weight;
+ save();
+ toast("ปรับเป้าสารอาหารตามน้ำหนักเฉลี่ยแล้ว");
+ return true;
+}
+function smartTargetSummary(){
+ const t=calculateSmartTargets(recentAverageWeight());
+ return `${t.calories} kcal • P ${t.protein}g • C ${t.carbs}g • F ${t.fat}g`;
+}
 function waterGoalMl(){
  const p=state.profile,l=latest();
  return Math.round(((+l.weight||67.1)*(+p.waterMlPerKg||35)+(state.done[todayIndex()+1]?+p.workoutWaterMl||700:0))/50)*50;
@@ -191,8 +233,16 @@ function achievements(){
  return[["🎖️","First Mission",d>=1],["🔥","7-Day Streak",s>=7],["🏆","First PR",p>=1],["📸","Progress Photo",ph>=1],["🛡️","30 Missions",d>=30],["⭐","84 Days",d>=84],["💧","Hydration",n.waterMl>=waterGoalMl()],["🥩","Protein",n.protein>=state.profile.proteinTarget]];
 }
 function initNav(){
- const html=NAV.map(x=>'<button data-page="'+x[0]+'">'+x[1]+'</button>').join("");
- $("sideNav").innerHTML=html;$("bottomNav").innerHTML=html;
+ const desktopHtml=NAV.map(x=>'<button data-page="'+x[0]+'">'+x[1]+'</button>').join("");
+ const mobileItems=[
+  ["commandPage","Home"],
+  ["workoutPage","Workout"],
+  ["nutritionPage","Nutrition"],
+  ["progressPage","Progress"],
+  ["settingsPage","More"]
+ ];
+ $("sideNav").innerHTML=desktopHtml;
+ $("bottomNav").innerHTML=mobileItems.map(x=>'<button data-page="'+x[0]+'">'+x[1]+'</button>').join("");
  document.querySelectorAll("[data-page]").forEach(b=>b.onclick=()=>showPage(b.dataset.page));
 }
 function showPage(id){
@@ -346,7 +396,7 @@ function compressPhoto(file,maxSide=480,quality=.72){
   reader.readAsDataURL(file);
  });
 }
-function saveCheck(){const date=$("checkDate").value,weight=+$("checkWeight").value;if(!date||!weight)return alert("กรอกวันที่และน้ำหนัก");state.checkins=state.checkins.filter(x=>x.date!==date);state.checkins.push({date,weight,bf:+$("checkBf").value||null,waist:+$("checkWaist").value||null,sleep:+$("checkSleep").value||null});state.checkins.sort((a,b)=>a.date.localeCompare(b.date));save();renderProgress();toast("บันทึกแล้ว")}
+function saveCheck(){const date=$("checkDate").value,weight=+$("checkWeight").value;if(!date||!weight)return alert("กรอกวันที่และน้ำหนัก");state.checkins=state.checkins.filter(x=>x.date!==date);state.checkins.push({date,weight,bf:+$("checkBf").value||null,waist:+$("checkWaist").value||null,sleep:+$("checkSleep").value||null});state.checkins.sort((a,b)=>a.date.localeCompare(b.date));save();maybeApplySmartTargets(false);renderProgress();toast("บันทึกแล้ว")}
 function renderCoach(){
  if(!state.chat.length)addChat("ai","พร้อมรับคำสั่งครับ Commander ถามเรื่อง Workout, โปรตีน, น้ำ, Recovery หรือเป้าหมายได้");
  $("coachPage").innerHTML=`<div class="two grid"><div class="card chat-shell"><div><span class="eyebrow">OFFLINE AI COMMANDER</span><h2>Coach Console</h2><div class="chat-log">${state.chat.map(m=>'<div class="bubble '+(m.role==="user"?"user":"ai")+'">'+m.text+'</div>').join("")}</div></div><div class="chat-compose"><input id="chatInput" placeholder="ถาม Commander..."><button id="chatSend" class="btn primary">ส่ง</button></div></div><div class="grid"><div class="card"><span class="eyebrow">DAILY BRIEF</span><div class="order"><span class="icon">AI</span><div><strong>Commander analysis</strong><div class="muted">${commanderText()}</div></div></div></div><div class="card"><span class="eyebrow">STATUS</span><div class="score-list"><div class="score-item"><span>Readiness</span><strong>${readiness()}</strong></div><div class="score-item"><span>Discipline</span><strong>${discipline()}</strong></div><div class="score-item"><span>Nutrition</span><strong>${nutritionScore()}</strong></div><div class="score-item"><span>Streak</span><strong>${streak()} days</strong></div></div></div><div class="card"><span class="eyebrow">QUICK QUESTIONS</span><div class="quick"><button data-q="วันนี้เล่นอะไรดี">วันนี้เล่นอะไร</button><button data-q="โปรตีนเหลือเท่าไร">โปรตีน</button><button data-q="ควรเพิ่มน้ำหนักไหม">เพิ่มน้ำหนัก</button><button data-q="Recovery วันนี้เป็นยังไง">Recovery</button></div></div></div></div>`;
@@ -368,7 +418,13 @@ function renderSettings(){
  $("settingsPage").innerHTML=`<div class="card"><span class="eyebrow">SYSTEM SETTINGS</span><h2>โปรไฟล์ เป้าหมาย และข้อมูล</h2>
  <div class="two grid">
   <div><label>ชื่อ<input id="profileName" value="${p.name}"></label><label>วันเริ่มโปรแกรม<input id="startDate" type="date" value="${state.start}"></label><label>น้ำหนักเป้าหมาย (kg)<input id="targetWeight" type="number" step=".1" value="${p.targetWeight}"></label><label>Body Fat เป้าหมาย (%)<input id="targetBf" type="number" step=".1" value="${p.targetBf}"></label></div>
-  <div><label>Calories Target<input id="calorieTarget" type="number" value="${p.calorieTarget}"></label><label>Protein Target (g)<input id="proteinTarget" type="number" value="${p.proteinTarget}"></label><label>Carb Target (g)<input id="carbTarget" type="number" value="${p.carbTarget}"></label><label>Fat Target (g)<input id="fatTarget" type="number" value="${p.fatTarget}"></label><label>น้ำต่อกิโลกรัม (ml/kg)<input id="waterPerKg" type="number" value="${p.waterMlPerKg}"></label><label>น้ำเพิ่มในวันฝึก (ml)<input id="workoutWater" type="number" value="${p.workoutWaterMl}"></label></div>
+  <div><label>Calories Target<input id="calorieTarget" type="number" value="${p.calorieTarget}"></label><label>Protein Target (g)<input id="proteinTarget" type="number" value="${p.proteinTarget}"></label><label>Carb Target (g)<input id="carbTarget" type="number" value="${p.carbTarget}"></label><label>Fat Target (g)<input id="fatTarget" type="number" value="${p.fatTarget}"></label><label>น้ำต่อกิโลกรัม (ml/kg)<input id="waterPerKg" type="number" value="${p.waterMlPerKg}"></label><label>น้ำเพิ่มในวันฝึก (ml)<input id="workoutWater" type="number" value="${p.workoutWaterMl}"></label><label>ส่วนสูง (cm)<input id="heightCm" type="number" value="${p.heightCm}"></label><label>อายุ<input id="profileAge" type="number" value="${p.age}"></label><label>ระดับกิจกรรม<select id="activityFactor"><option value="1.3" ${p.activityFactor==1.3?"selected":""}>เบา</option><option value="1.45" ${p.activityFactor==1.45?"selected":""}>ปานกลาง</option><option value="1.6" ${p.activityFactor==1.6?"selected":""}>ค่อนข้างสูง</option></select></label><label>Calorie Deficit (%)<input id="deficitPct" type="number" value="${p.calorieDeficitPct}"></label><label><input id="smartTargets" type="checkbox" ${p.smartTargets?"checked":""} style="width:auto"> ปรับเป้าสารอาหารอัตโนมัติ</label><p class="muted">ค่าที่ระบบแนะนำตอนนี้: ${smartTargetSummary()}</p><button id="applySmartTargets" class="btn ghost">คำนวณและใช้เป้าปัจจุบัน</button></div>
+ </div>
+ <div class="mobile-more-grid" style="margin-bottom:12px">
+  <button class="btn ghost" data-more-page="calendarPage">84 Days</button>
+  <button class="btn ghost" data-more-page="coachPage">Commander</button>
+  <button class="btn ghost" data-more-page="analyticsPage">Analytics</button>
+  <button class="btn ghost" data-more-page="libraryPage">Library</button>
  </div>
  <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="saveSettings" class="btn primary">บันทึก</button><button id="exportData" class="btn ghost">ส่งออก Backup</button><label class="btn ghost">นำเข้า Backup<input id="importData" type="file" hidden accept=".json"></label><button id="resetData" class="btn danger">ล้างข้อมูล</button></div><p class="muted" style="margin-top:14px">ข้อมูลบันทึกอัตโนมัติในเครื่อง และโภชนาการแยกตามวันที่ ควร Export Backup อย่างน้อยสัปดาห์ละครั้ง</p></div>`;
  $("saveSettings").onclick=()=>{
@@ -384,10 +440,17 @@ function renderSettings(){
    carbTarget:+$("carbTarget").value||225,
    fatTarget:+$("fatTarget").value||60,
    waterMlPerKg:+$("waterPerKg").value||35,
-   workoutWaterMl:+$("workoutWater").value||700
+   workoutWaterMl:+$("workoutWater").value||700,
+   heightCm:+$("heightCm").value||167,
+   age:+$("profileAge").value||30,
+   activityFactor:+$("activityFactor").value||1.45,
+   calorieDeficitPct:+$("deficitPct").value||15,
+   smartTargets:$("smartTargets").checked
   });
   save();renderAll();toast("บันทึกแล้ว");
  };
+ document.querySelectorAll("[data-more-page]").forEach(b=>b.onclick=()=>showPage(b.dataset.morePage));
+ $("applySmartTargets").onclick=()=>{maybeApplySmartTargets(true);renderSettings()};
  $("exportData").onclick=exportData;$("importData").onchange=importData;$("resetData").onclick=()=>{if(confirm("ล้างข้อมูลทั้งหมดหรือไม่?")){state=clone(DEFAULT);save();renderAll()}};
 }
 function openGuide(ex){openModal('<div class="modal-card"><div class="space"><div><span class="eyebrow">EXERCISE GUIDE</span><h2>'+ex.name+'</h2></div><button data-close class="btn ghost">ปิด</button></div><div class="guide-grid"><div class="guide-demo">'+icon(ex.name)+'</div><div><h3>Target muscles</h3>'+ex.muscles.map(x=>'<span class="tag">'+x+'</span>').join("")+'<h3 style="margin-top:14px">Commander cue</h3><p class="muted">ควบคุมทุกครั้ง เกร็งแกนกลาง และหยุดก่อนฟอร์มเสียประมาณ 1–2 ครั้ง</p><a target="_blank" rel="noopener" href="https://www.youtube.com/results?search_query='+encodeURIComponent(ex.video)+'"><button class="btn primary">เปิดคลิปสาธิต</button></a></div></div></div>')}
