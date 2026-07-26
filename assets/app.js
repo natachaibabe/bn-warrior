@@ -2,7 +2,7 @@
 (function(){
 "use strict";
 const HERO_IMAGE="assets/hero.webp";
-const KEY="bn_warrior_v16_program_engine";
+const KEY="bn_warrior_v17_complete";
 let memoryStore={};
 const STORE={
  get(k){try{return localStorage.getItem(k)}catch(e){return memoryStore[k]||null}},
@@ -67,6 +67,10 @@ const DEFAULT={
   {id:"banana1",name:"กล้วย 1 ลูก",cal:105,p:1,c:27,f:0,meal:"Snack"}
  ],
  program:{id:"militaryLean",name:"Military Lean",durationDays:84,started:false},
+ customPrograms:[],
+ weeklyReviews:{},
+ healthMetrics:{},
+ developer:{enabled:false},
 
  meta:{schemaVersion:15,updatedAt:null,deviceId:null},
  cloud:{
@@ -84,7 +88,7 @@ const NAV=[["commandPage","Command"],["workoutPage","Workout"],["calendarPage","
 function clone(v){return JSON.parse(JSON.stringify(v))}
 function loadState(){
  try{
-  const raw=STORE.get(KEY)||STORE.get("bn_warrior_v15_private_cloud")||STORE.get("bn_warrior_v14_production")||STORE.get("bn_warrior_v13_mobile_fix")||STORE.get("bn_warrior_v12_mobile_smart")||STORE.get("bn_warrior_v11_production")||STORE.get("bn_warrior_v10_pwa")||STORE.get("bn_warrior_v9_production")||STORE.get("bn_warrior_v8_final")||STORE.get("bn_warrior_v7_production")||STORE.get("bn_warrior_v6_final")||STORE.get("bn_warrior_v5_final")||STORE.get("bn_warrior_v42_hud")||STORE.get("bn_warrior_v4_hud")||STORE.get("bn_warrior_v3_rc")||STORE.get("bn_warrior_v2_portable");
+  const raw=STORE.get(KEY)||STORE.get("bn_warrior_v16_program_engine")||STORE.get("bn_warrior_v15_private_cloud")||STORE.get("bn_warrior_v14_production")||STORE.get("bn_warrior_v13_mobile_fix")||STORE.get("bn_warrior_v12_mobile_smart")||STORE.get("bn_warrior_v11_production")||STORE.get("bn_warrior_v10_pwa")||STORE.get("bn_warrior_v9_production")||STORE.get("bn_warrior_v8_final")||STORE.get("bn_warrior_v7_production")||STORE.get("bn_warrior_v6_final")||STORE.get("bn_warrior_v5_final")||STORE.get("bn_warrior_v42_hud")||STORE.get("bn_warrior_v4_hud")||STORE.get("bn_warrior_v3_rc")||STORE.get("bn_warrior_v2_portable");
   if(!raw)return clone(DEFAULT);
   const old=JSON.parse(raw);
   const migrated=Object.assign(clone(DEFAULT),old,{
@@ -92,6 +96,10 @@ function loadState(){
    settings:Object.assign({},DEFAULT.settings,old.settings||{}),
    cloud:Object.assign({},DEFAULT.cloud,old.cloud||{}),
    program:Object.assign({},DEFAULT.program,old.program||{}),
+   customPrograms:Array.isArray(old.customPrograms)?old.customPrograms:[],
+   weeklyReviews:Object.assign({},old.weeklyReviews||{}),
+   healthMetrics:Object.assign({},old.healthMetrics||{}),
+   developer:Object.assign({},DEFAULT.developer,old.developer||{}),
    favoriteFoods:Array.isArray(old.favoriteFoods)&&old.favoriteFoods.length?old.favoriteFoods:clone(DEFAULT.favoriteFoods),
    meta:Object.assign({},DEFAULT.meta,old.meta||{}),
    nutritionByDate:Object.assign({},old.nutritionByDate||{})
@@ -130,14 +138,155 @@ function streak(){let s=0;for(let i=todayIndex();i>=0;i--){if(state.done[i+1])s+
 
 
 const PROGRAMS={
- militaryLean:{id:"militaryLean",name:"Military Lean",durationDays:84,targetWeightDelta:-4.5,targetBf:12.5,deficit:15,activity:1.45,description:"ลดไขมัน รักษากล้าม Strength + Zone 2"},
- bodyRecomp:{id:"bodyRecomp",name:"Body Recomposition",durationDays:84,targetWeightDelta:-2,targetBf:14,deficit:8,activity:1.45,description:"ลดไขมันพร้อมเพิ่มกล้ามแบบค่อยเป็นค่อยไป"},
- leanBulk:{id:"leanBulk",name:"Lean Bulk",durationDays:112,targetWeightDelta:4,targetBf:16,deficit:-8,activity:1.55,description:"เพิ่มมวลกล้ามแบบคุมไขมัน"},
- healthReset:{id:"healthReset",name:"Health Reset",durationDays:56,targetWeightDelta:-2,targetBf:18,deficit:10,activity:1.3,description:"เริ่มต้นใหม่ เน้นความสม่ำเสมอและสุขภาพ"},
- hybridAthlete:{id:"hybridAthlete",name:"Hybrid Athlete",durationDays:84,targetWeightDelta:-1,targetBf:14,deficit:5,activity:1.6,description:"เวท + วิ่ง + ความฟิตโดยรวม"}
+ militaryLean:{id:"militaryLean",name:"Military Lean",durationDays:84,targetWeightDelta:-4.5,targetBf:12.5,deficit:15,activity:1.45,description:"ลดไขมัน รักษากล้าม Strength + Zone 2",accent:"Military"},
+ bodyRecomp:{id:"bodyRecomp",name:"Body Recomposition",durationDays:84,targetWeightDelta:-2,targetBf:14,deficit:8,activity:1.45,description:"ลดไขมันพร้อมเพิ่มกล้ามแบบค่อยเป็นค่อยไป",accent:"Recomp"},
+ leanBulk:{id:"leanBulk",name:"Lean Bulk",durationDays:112,targetWeightDelta:4,targetBf:16,deficit:-8,activity:1.55,description:"เพิ่มมวลกล้ามแบบคุมไขมัน",accent:"Hypertrophy"},
+ healthReset:{id:"healthReset",name:"Health Reset",durationDays:56,targetWeightDelta:-2,targetBf:18,deficit:10,activity:1.3,description:"เริ่มต้นใหม่ เน้นความสม่ำเสมอและสุขภาพ",accent:"Wellness"},
+ hybridAthlete:{id:"hybridAthlete",name:"Hybrid Athlete",durationDays:84,targetWeightDelta:-1,targetBf:14,deficit:5,activity:1.6,description:"เวท + วิ่ง + ความฟิตโดยรวม",accent:"Hybrid"}
 };
+const PROGRAM_WORKOUTS={
+ militaryLean:[
+  {name:"Upper Strength",duration:65,focus:"อก หลัง ไหล่ และแกนกลาง",exercises:[
+   {name:"Dumbbell Floor Press",sets:4,reps:"8–10",rest:90,muscles:["อก","ไหล่หน้า","ไตรเซปส์"],video:"dumbbell floor press proper form"},
+   {name:"One-arm Dumbbell Row",sets:4,reps:"10/ข้าง",rest:90,muscles:["หลัง","ปีก","ไบเซปส์"],video:"one arm dumbbell row proper form"},
+   {name:"Standing Shoulder Press",sets:3,reps:"8–10",rest:90,muscles:["หัวไหล่","ไตรเซปส์"],video:"standing dumbbell shoulder press proper form"},
+   {name:"Parallel Bar Dip / Push-up",sets:3,reps:"เหลือแรง 1–2 ครั้ง",rest:75,muscles:["อก","ไตรเซปส์"],video:"parallel bar dip proper form"},
+   {name:"Ab Wheel Rollout",sets:3,reps:"6–10",rest:60,muscles:["แกนกลาง"],video:"ab wheel rollout proper form"}]},
+  {name:"Zone 2 + Core",duration:50,focus:"หัวใจ ความอึด และแกนกลาง",exercises:[
+   {name:"Zone 2 Treadmill",sets:1,reps:"40 นาที",rest:0,muscles:["หัวใจ","ขา"],video:"zone 2 treadmill cardio"},
+   {name:"Plank",sets:3,reps:"45–60 วิ",rest:45,muscles:["แกนกลาง"],video:"plank proper form"},
+   {name:"Side Plank",sets:3,reps:"30–45 วิ/ข้าง",rest:45,muscles:["หน้าท้องด้านข้าง"],video:"side plank proper form"}]},
+  {name:"Lower Strength",duration:70,focus:"ขา สะโพก และแรงจับ",exercises:[
+   {name:"Goblet Squat",sets:4,reps:"8–12",rest:90,muscles:["ต้นขา","ก้น"],video:"goblet squat proper form"},
+   {name:"Dumbbell Romanian Deadlift",sets:4,reps:"8–12",rest:90,muscles:["หลังขา","ก้น"],video:"dumbbell romanian deadlift proper form"},
+   {name:"Bulgarian Split Squat",sets:3,reps:"8–10/ข้าง",rest:90,muscles:["ต้นขา","ก้น"],video:"bulgarian split squat proper form"},
+   {name:"Farmer Carry",sets:4,reps:"40–60 วิ",rest:60,muscles:["แรงจับ","แกนกลาง"],video:"dumbbell farmer carry proper form"}]},
+  {name:"Recovery & Mobility",duration:35,focus:"ฟื้นตัว ลดเมื่อย",exercises:[
+   {name:"Easy Walk",sets:1,reps:"30 นาที",rest:0,muscles:["ฟื้นตัว"],video:"easy treadmill walking recovery"},
+   {name:"Mobility Flow",sets:1,reps:"15 นาที",rest:0,muscles:["ข้อต่อ"],video:"full body mobility routine"}]},
+  {name:"Upper Hypertrophy",duration:65,focus:"เพิ่มทรงไหล่ หลัง และอก",exercises:[
+   {name:"Incline Dumbbell Press",sets:4,reps:"10–12",rest:75,muscles:["อกบน","ไหล่หน้า"],video:"incline dumbbell press proper form"},
+   {name:"Chest-supported Row",sets:4,reps:"10–12",rest:75,muscles:["หลัง","ปีก"],video:"chest supported dumbbell row proper form"},
+   {name:"Lateral Raise",sets:4,reps:"12–20",rest:60,muscles:["ไหล่ข้าง"],video:"dumbbell lateral raise proper form"},
+   {name:"Hammer Curl",sets:3,reps:"10–15",rest:60,muscles:["ไบเซปส์"],video:"dumbbell hammer curl proper form"},
+   {name:"Overhead Triceps Extension",sets:3,reps:"10–15",rest:60,muscles:["ไตรเซปส์"],video:"overhead dumbbell triceps extension proper form"}]},
+  {name:"Military Conditioning",duration:50,focus:"ความอึดและการเผาผลาญ",exercises:[
+   {name:"Treadmill 400 m",sets:5,reps:"400 เมตร",rest:75,muscles:["หัวใจ","ขา"],video:"treadmill running form"},
+   {name:"Dumbbell Thruster",sets:5,reps:"10",rest:60,muscles:["ขา","ไหล่"],video:"dumbbell thruster proper form"},
+   {name:"Push-up",sets:5,reps:"12",rest:45,muscles:["อก","แขน"],video:"push up proper form"}]},
+  {name:"Recovery Walk",duration:40,focus:"Active recovery",exercises:[
+   {name:"Easy Walk",sets:1,reps:"35–45 นาที",rest:0,muscles:["ฟื้นตัว"],video:"easy treadmill walking recovery"},
+   {name:"Slow Breathing",sets:1,reps:"5 นาที",rest:0,muscles:["ระบบประสาท"],video:"slow breathing exercise recovery"}]}
+ ],
+ bodyRecomp:[
+  {name:"Upper Recomp",duration:60,focus:"แรงและกล้ามช่วงบน",exercises:[
+   {name:"Dumbbell Floor Press",sets:4,reps:"8–12",rest:90,muscles:["อก","ไตรเซปส์"],video:"dumbbell floor press proper form"},
+   {name:"One-arm Dumbbell Row",sets:4,reps:"8–12",rest:90,muscles:["หลัง","ไบเซปส์"],video:"one arm dumbbell row proper form"},
+   {name:"Lateral Raise",sets:3,reps:"15–20",rest:60,muscles:["ไหล่"],video:"dumbbell lateral raise proper form"}]},
+  {name:"Zone 2",duration:45,focus:"เผาผลาญไขมันและหัวใจ",exercises:[
+   {name:"Zone 2 Treadmill",sets:1,reps:"40–45 นาที",rest:0,muscles:["หัวใจ","ขา"],video:"zone 2 treadmill cardio"}]},
+  {name:"Lower Recomp",duration:65,focus:"ขาและสะโพก",exercises:[
+   {name:"Goblet Squat",sets:4,reps:"10–15",rest:90,muscles:["ขา","ก้น"],video:"goblet squat proper form"},
+   {name:"Dumbbell Romanian Deadlift",sets:4,reps:"10–12",rest:90,muscles:["หลังขา","ก้น"],video:"dumbbell romanian deadlift proper form"},
+   {name:"Reverse Lunge",sets:3,reps:"10/ข้าง",rest:75,muscles:["ขา","ก้น"],video:"reverse lunge dumbbell proper form"}]},
+  {name:"Mobility & Core",duration:35,focus:"แกนกลางและการเคลื่อนไหว",exercises:[
+   {name:"Ab Wheel Rollout",sets:3,reps:"6–10",rest:60,muscles:["แกนกลาง"],video:"ab wheel rollout proper form"},
+   {name:"Mobility Flow",sets:1,reps:"20 นาที",rest:0,muscles:["ข้อต่อ"],video:"full body mobility routine"}]},
+  {name:"Full Body Hypertrophy",duration:65,focus:"กล้ามทั่วร่าง",exercises:[
+   {name:"Dumbbell Thruster",sets:4,reps:"8–10",rest:90,muscles:["ขา","ไหล่"],video:"dumbbell thruster proper form"},
+   {name:"Chest-supported Row",sets:4,reps:"10–12",rest:75,muscles:["หลัง"],video:"chest supported dumbbell row proper form"},
+   {name:"Bulgarian Split Squat",sets:3,reps:"10/ข้าง",rest:90,muscles:["ขา","ก้น"],video:"bulgarian split squat proper form"},
+   {name:"Push-up",sets:3,reps:"ใกล้หมดแรง",rest:60,muscles:["อก"],video:"push up proper form"}]},
+  {name:"Intervals",duration:35,focus:"Cardio intervals",exercises:[
+   {name:"Treadmill Intervals",sets:8,reps:"1 นาทีเร็ว / 1 นาทีช้า",rest:0,muscles:["หัวใจ","ขา"],video:"treadmill interval workout"}]},
+  {name:"Rest / Easy Walk",duration:30,focus:"ฟื้นตัว",exercises:[
+   {name:"Easy Walk",sets:1,reps:"30 นาที",rest:0,muscles:["ฟื้นตัว"],video:"easy treadmill walking recovery"}]}
+ ],
+ leanBulk:[
+  {name:"Push",duration:70,focus:"อก ไหล่ ไตรเซปส์",exercises:[
+   {name:"Dumbbell Floor Press",sets:5,reps:"6–10",rest:120,muscles:["อก","ไตรเซปส์"],video:"dumbbell floor press proper form"},
+   {name:"Incline Dumbbell Press",sets:4,reps:"8–12",rest:90,muscles:["อกบน"],video:"incline dumbbell press proper form"},
+   {name:"Standing Shoulder Press",sets:4,reps:"8–10",rest:90,muscles:["ไหล่"],video:"standing dumbbell shoulder press proper form"},
+   {name:"Lateral Raise",sets:4,reps:"12–20",rest:60,muscles:["ไหล่ข้าง"],video:"dumbbell lateral raise proper form"},
+   {name:"Overhead Triceps Extension",sets:4,reps:"10–15",rest:60,muscles:["ไตรเซปส์"],video:"overhead dumbbell triceps extension proper form"}]},
+  {name:"Pull",duration:70,focus:"หลัง ไบเซปส์",exercises:[
+   {name:"One-arm Dumbbell Row",sets:5,reps:"8–12",rest:90,muscles:["หลัง"],video:"one arm dumbbell row proper form"},
+   {name:"Chest-supported Row",sets:4,reps:"10–12",rest:90,muscles:["หลังกลาง"],video:"chest supported dumbbell row proper form"},
+   {name:"Rear Delt Fly",sets:4,reps:"12–20",rest:60,muscles:["ไหล่หลัง"],video:"rear delt dumbbell fly proper form"},
+   {name:"Hammer Curl",sets:4,reps:"8–12",rest:60,muscles:["ไบเซปส์"],video:"dumbbell hammer curl proper form"}]},
+  {name:"Legs",duration:75,focus:"ขาและสะโพก",exercises:[
+   {name:"Goblet Squat",sets:5,reps:"8–12",rest:120,muscles:["ต้นขา","ก้น"],video:"goblet squat proper form"},
+   {name:"Dumbbell Romanian Deadlift",sets:5,reps:"8–12",rest:120,muscles:["หลังขา","ก้น"],video:"dumbbell romanian deadlift proper form"},
+   {name:"Bulgarian Split Squat",sets:4,reps:"8–12/ข้าง",rest:90,muscles:["ขา","ก้น"],video:"bulgarian split squat proper form"},
+   {name:"Standing Calf Raise",sets:5,reps:"12–20",rest:60,muscles:["น่อง"],video:"standing calf raise proper form"}]},
+  {name:"Rest",duration:25,focus:"พักและยืด",exercises:[
+   {name:"Mobility Flow",sets:1,reps:"20 นาที",rest:0,muscles:["ข้อต่อ"],video:"full body mobility routine"}]},
+  {name:"Upper Volume",duration:75,focus:"Volume ช่วงบน",exercises:[
+   {name:"Incline Dumbbell Press",sets:4,reps:"10–15",rest:75,muscles:["อก"],video:"incline dumbbell press proper form"},
+   {name:"Chest-supported Row",sets:4,reps:"10–15",rest:75,muscles:["หลัง"],video:"chest supported dumbbell row proper form"},
+   {name:"Standing Shoulder Press",sets:3,reps:"10–12",rest:75,muscles:["ไหล่"],video:"standing dumbbell shoulder press proper form"},
+   {name:"Hammer Curl",sets:3,reps:"12–15",rest:60,muscles:["ไบเซปส์"],video:"dumbbell hammer curl proper form"}]},
+  {name:"Lower Volume",duration:70,focus:"Volume ช่วงล่าง",exercises:[
+   {name:"Goblet Squat",sets:4,reps:"12–15",rest:90,muscles:["ขา"],video:"goblet squat proper form"},
+   {name:"Dumbbell Romanian Deadlift",sets:4,reps:"10–15",rest:90,muscles:["หลังขา"],video:"dumbbell romanian deadlift proper form"},
+   {name:"Reverse Lunge",sets:4,reps:"12/ข้าง",rest:75,muscles:["ขา","ก้น"],video:"reverse lunge dumbbell proper form"}]},
+  {name:"Arms & Recovery",duration:45,focus:"แขนและฟื้นตัว",exercises:[
+   {name:"Hammer Curl",sets:4,reps:"12–15",rest:60,muscles:["ไบเซปส์"],video:"dumbbell hammer curl proper form"},
+   {name:"Overhead Triceps Extension",sets:4,reps:"12–15",rest:60,muscles:["ไตรเซปส์"],video:"overhead dumbbell triceps extension proper form"},
+   {name:"Easy Walk",sets:1,reps:"20 นาที",rest:0,muscles:["ฟื้นตัว"],video:"easy treadmill walking recovery"}]}
+ ],
+ healthReset:[
+  {name:"Full Body Beginner",duration:40,focus:"พื้นฐานทั่วร่าง",exercises:[
+   {name:"Bodyweight Squat",sets:3,reps:"10–15",rest:75,muscles:["ขา"],video:"bodyweight squat proper form"},
+   {name:"Incline Push-up",sets:3,reps:"8–12",rest:75,muscles:["อก"],video:"incline push up proper form"},
+   {name:"One-arm Dumbbell Row",sets:3,reps:"10/ข้าง",rest:75,muscles:["หลัง"],video:"one arm dumbbell row proper form"}]},
+  {name:"Walking",duration:40,focus:"หัวใจและการเคลื่อนไหว",exercises:[
+   {name:"Easy Walk",sets:1,reps:"30–40 นาที",rest:0,muscles:["หัวใจ"],video:"easy treadmill walking recovery"}]},
+  {name:"Mobility",duration:30,focus:"ข้อต่อและความยืดหยุ่น",exercises:[
+   {name:"Mobility Flow",sets:1,reps:"25 นาที",rest:0,muscles:["ข้อต่อ"],video:"full body mobility routine"}]},
+  {name:"Full Body Strength",duration:45,focus:"แรงพื้นฐาน",exercises:[
+   {name:"Goblet Squat",sets:3,reps:"10",rest:90,muscles:["ขา"],video:"goblet squat proper form"},
+   {name:"Dumbbell Floor Press",sets:3,reps:"10",rest:90,muscles:["อก"],video:"dumbbell floor press proper form"},
+   {name:"Dumbbell Romanian Deadlift",sets:3,reps:"10",rest:90,muscles:["หลังขา"],video:"dumbbell romanian deadlift proper form"}]},
+  {name:"Walking + Core",duration:40,focus:"หัวใจและแกนกลาง",exercises:[
+   {name:"Easy Walk",sets:1,reps:"25 นาที",rest:0,muscles:["หัวใจ"],video:"easy treadmill walking recovery"},
+   {name:"Plank",sets:3,reps:"20–40 วิ",rest:60,muscles:["แกนกลาง"],video:"plank proper form"}]},
+  {name:"Balance & Mobility",duration:30,focus:"สมดุลและฟื้นตัว",exercises:[
+   {name:"Single-leg Balance",sets:3,reps:"30 วิ/ข้าง",rest:30,muscles:["สมดุล"],video:"single leg balance exercise"},
+   {name:"Mobility Flow",sets:1,reps:"15 นาที",rest:0,muscles:["ข้อต่อ"],video:"full body mobility routine"}]},
+  {name:"Rest",duration:20,focus:"พัก",exercises:[
+   {name:"Slow Breathing",sets:1,reps:"10 นาที",rest:0,muscles:["ระบบประสาท"],video:"slow breathing exercise recovery"}]}
+ ],
+ hybridAthlete:[
+  {name:"Strength A",duration:65,focus:"แรงทั่วร่าง",exercises:[
+   {name:"Goblet Squat",sets:4,reps:"6–10",rest:120,muscles:["ขา"],video:"goblet squat proper form"},
+   {name:"Dumbbell Floor Press",sets:4,reps:"6–10",rest:120,muscles:["อก"],video:"dumbbell floor press proper form"},
+   {name:"One-arm Dumbbell Row",sets:4,reps:"8–10",rest:90,muscles:["หลัง"],video:"one arm dumbbell row proper form"}]},
+  {name:"Easy Run",duration:45,focus:"Aerobic base",exercises:[
+   {name:"Zone 2 Treadmill",sets:1,reps:"40–45 นาที",rest:0,muscles:["หัวใจ","ขา"],video:"zone 2 treadmill cardio"}]},
+  {name:"Strength B",duration:65,focus:"แรงและสะโพก",exercises:[
+   {name:"Dumbbell Romanian Deadlift",sets:4,reps:"6–10",rest:120,muscles:["หลังขา"],video:"dumbbell romanian deadlift proper form"},
+   {name:"Standing Shoulder Press",sets:4,reps:"6–10",rest:90,muscles:["ไหล่"],video:"standing dumbbell shoulder press proper form"},
+   {name:"Bulgarian Split Squat",sets:3,reps:"8/ข้าง",rest:90,muscles:["ขา"],video:"bulgarian split squat proper form"}]},
+  {name:"Intervals",duration:40,focus:"ความเร็วและ VO2",exercises:[
+   {name:"Treadmill Intervals",sets:8,reps:"1 นาทีเร็ว / 90 วิช้า",rest:0,muscles:["หัวใจ","ขา"],video:"treadmill interval workout"}]},
+  {name:"Full Body Power",duration:55,focus:"Power + Conditioning",exercises:[
+   {name:"Dumbbell Thruster",sets:4,reps:"8",rest:90,muscles:["ขา","ไหล่"],video:"dumbbell thruster proper form"},
+   {name:"Farmer Carry",sets:5,reps:"45 วิ",rest:60,muscles:["แรงจับ","แกนกลาง"],video:"dumbbell farmer carry proper form"},
+   {name:"Push-up",sets:4,reps:"10–15",rest:60,muscles:["อก"],video:"push up proper form"}]},
+  {name:"Long Run",duration:65,focus:"Endurance",exercises:[
+   {name:"Long Easy Treadmill",sets:1,reps:"55–65 นาที",rest:0,muscles:["หัวใจ","ขา"],video:"long easy run treadmill"}]},
+  {name:"Mobility Recovery",duration:35,focus:"ฟื้นตัว",exercises:[
+   {name:"Mobility Flow",sets:1,reps:"20 นาที",rest:0,muscles:["ข้อต่อ"],video:"full body mobility routine"},
+   {name:"Easy Walk",sets:1,reps:"15 นาที",rest:0,muscles:["ฟื้นตัว"],video:"easy treadmill walking recovery"}]}
+ ]
+};
+function allPrograms(){
+ const customs=(state.customPrograms||[]).reduce((m,p)=>(m[p.id]=p,m),{});
+ return Object.assign({},PROGRAMS,customs);
+}
 function applyProgram(programId,startDate,opts={}){
- const preset=PROGRAMS[programId]||PROGRAMS.militaryLean,l=latest(),p=state.profile;
+ const preset=allPrograms()[programId]||PROGRAMS.militaryLean,l=latest(),p=state.profile;
  state.program={id:preset.id,name:preset.name,durationDays:preset.durationDays,started:true,startedAt:startDate};
  state.start=startDate;
  p.activityFactor=preset.activity;
@@ -160,7 +309,7 @@ function openProgramWizard(){
  const root=document.createElement("div");root.className="food-modal show";
  root.innerHTML=`<div class="food-modal-card program-wizard">
   <div class="space"><div><span class="eyebrow">MISSION SETUP</span><h2>เลือกโปรแกรม</h2></div><button class="modal-x" data-close>×</button></div>
-  <div class="program-grid">${Object.values(PROGRAMS).map(x=>`<button class="program-option ${current.id===x.id?"selected":""}" data-program="${x.id}"><strong>${x.name}</strong><span>${x.durationDays} วัน</span><small>${x.description}</small></button>`).join("")}</div>
+  <div class="program-grid">${Object.values(allPrograms()).map(x=>`<button class="program-option ${current.id===x.id?"selected":""}" data-program="${x.id}"><strong>${x.name}</strong><span>${x.durationDays} วัน</span><small>${x.description}</small></button>`).join("")}</div>
   <label>วันเริ่มโปรแกรม<input id="programStartDate" type="date" value="${state.start||todayKey()}"></label>
   <div class="reset-options">
    <label><input id="resetWorkout" type="checkbox" checked> เริ่ม Workout / XP / Timeline ใหม่</label>
@@ -236,12 +385,18 @@ function workoutPhase(day){
  return {name:"Taper & Test",volume:.8,intensity:1,deload:true};
 }
 function workoutFor(day){
- const base=clone(WORKOUTS[(day-1)%7]),phase=workoutPhase(day);
- base.phase=phase;
- base.exercises=base.exercises.map(ex=>{
+ const programId=state.program?.id||"militaryLean";
+ let templates=PROGRAM_WORKOUTS[programId];
+ const custom=state.customPrograms?.find(x=>x.id===programId);
+ if(custom?.workouts?.length)templates=custom.workouts;
+ if(!templates?.length)templates=PROGRAM_WORKOUTS.militaryLean;
+ const base=clone(templates[(day-1)%templates.length]),phase=workoutPhase(day);
+ base.phase=phase;base.programId=programId;
+ base.exercises=(base.exercises||[]).map(ex=>{
   const copy=Object.assign({},ex);
-  if(phase.deload && copy.sets>1)copy.sets=Math.max(1,Math.round(copy.sets*phase.volume));
-  else if(phase.volume>1.05 && copy.sets>1 && !/walk|treadmill|mobility|breath/i.test(copy.name))copy.sets=Math.min(copy.sets+1,5);
+  const review=reviewFor(),lowRecovery=readiness()<45||(+review.soreness||0)>=8;
+  if((phase.deload||lowRecovery) && copy.sets>1)copy.sets=Math.max(1,Math.round(copy.sets*(lowRecovery?.65:.72)));
+  else if(phase.volume>1.05 && copy.sets>1 && !/walk|treadmill|mobility|breath|rest/i.test(copy.name))copy.sets=Math.min(copy.sets+1,6);
   return copy;
  });
  return base;
@@ -420,7 +575,7 @@ function renderCommand(){
   </div>
  </div>
  <div class="stats" style="margin-top:11px">${stat("Day",day+"/84")}${stat("Week",(Math.floor((day-1)/7)+1)+"/12")}${stat("Phase",w.phase.name)}${stat("Weight",current.toFixed(1)+" kg")}${stat("Sets",completedSets())}${stat("XP",xpTotal().toLocaleString())}</div>
- <div class="card" style="margin-top:11px"><div class="space"><div><span class="eyebrow">84-DAY TRANSFORMATION TIMELINE</span><h2>Operation Progress</h2></div><strong>${campaign}% Complete</strong></div><div class="bar"><i style="width:${campaign}%"></i></div><div class="timeline84" style="margin-top:12px">${Array.from({length:84},(_,i)=>'<button class="daycell '+(state.done[i+1]?"done ":"")+(i<todayIndex()&&!state.done[i+1]?"missed ":"")+(i===todayIndex()?"today ":"")+(i>todayIndex()?"future":"")+'" data-timeline-day="'+(i+1)+'">'+(i+1)+'</button>').join("")}</div><div class="legend"><span><i class="dot today"></i>Today</span><span><i class="dot done"></i>Completed</span><span><i class="dot missed"></i>Missed</span><span><i class="dot"></i>Upcoming</span></div><p class="muted" style="margin:9px 0 0">Day ${day} of 84 • Completed ${completed} missions • Remaining ${84-day} days</p></div>
+ <div class="card goal-engine-card" style="margin-top:11px">${(()=>{const g=goalProjection();return `<div class="space"><div><span class="eyebrow">GOAL ENGINE</span><h2>${g.current.toFixed(1)} → ${g.target.toFixed(1)} kg</h2></div><strong>${g.progress}%</strong></div><div class="bar"><i style="width:${g.progress}%"></i></div><div class="goal-meta"><span>Remaining <strong>${g.remaining} kg</strong></span><span>Rate <strong>${g.weeklyRate} kg/week</strong></span><span>Projected <strong>${g.eta}</strong></span></div>`})()}</div><div class="card" style="margin-top:11px"><div class="space"><div><span class="eyebrow">84-DAY TRANSFORMATION TIMELINE</span><h2>Operation Progress</h2></div><strong>${campaign}% Complete</strong></div><div class="bar"><i style="width:${campaign}%"></i></div><div class="timeline84" style="margin-top:12px">${Array.from({length:84},(_,i)=>'<button class="daycell '+(state.done[i+1]?"done ":"")+(i<todayIndex()&&!state.done[i+1]?"missed ":"")+(i===todayIndex()?"today ":"")+(i>todayIndex()?"future":"")+'" data-timeline-day="'+(i+1)+'">'+(i+1)+'</button>').join("")}</div><div class="legend"><span><i class="dot today"></i>Today</span><span><i class="dot done"></i>Completed</span><span><i class="dot missed"></i>Missed</span><span><i class="dot"></i>Upcoming</span></div><p class="muted" style="margin:9px 0 0">Day ${day} of 84 • Completed ${completed} missions • Remaining ${84-day} days</p></div>
  <div class="card" style="margin-top:11px"><span class="eyebrow">QUICK ACTIONS</span><div class="quick-actions" style="margin-top:10px"><button id="qaWorkout" class="quick-action primary"><span class="icon">▶</span><div><strong>Start Workout</strong><small>Begin today's mission</small></div></button><button id="qaNutrition" class="quick-action"><span class="icon">N</span><div><strong>Fuel Up</strong><small>Log nutrition</small></div></button><button id="qaProgress" class="quick-action"><span class="icon">P</span><div><strong>View Progress</strong><small>Track results</small></div></button><button id="qaCoach" class="quick-action"><span class="icon">AI</span><div><strong>AI Commander</strong><small>Daily guidance</small></div></button><button id="qaCalendar" class="quick-action"><span class="icon">84</span><div><strong>Operation Calendar</strong><small>Plan your day</small></div></button></div></div>
  
  <div class="v14-dashboard-grid">
@@ -605,6 +760,66 @@ function renderCoach(){
  const send=()=>{const q=$("chatInput").value.trim();if(!q)return;addChat("user",q);addChat("ai",offlineCommander(q));renderCoach()};
  $("chatSend").onclick=send;$("chatInput").onkeydown=e=>{if(e.key==="Enter")send()};document.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>{$("chatInput").value=b.dataset.q;send()});
 }
+
+function programDuration(){return +(state.program?.durationDays||84)}
+function programDay(){return Math.max(1,Math.min(programDuration(),todayIndex()+1))}
+function goalProjection(){
+ const p=state.profile,current=+latest().weight||67.1,target=+p.targetWeight||62.5;
+ const checks=(state.checkins||[]).filter(x=>x.weight).slice(-6);
+ let weeklyRate=.35;
+ if(checks.length>=2){
+  const first=checks[0],last=checks.at(-1),days=Math.max(1,(new Date(last.date)-new Date(first.date))/86400000);
+  weeklyRate=Math.abs((+last.weight-+first.weight)/(days/7))||.35;
+ }
+ const remaining=Math.abs(current-target),weeks=remaining/Math.max(.1,weeklyRate);
+ const eta=new Date();eta.setDate(eta.getDate()+Math.ceil(weeks*7));
+ return {current,target,remaining:+remaining.toFixed(1),weeklyRate:+weeklyRate.toFixed(2),eta:iso(eta),progress:Math.max(0,Math.min(100,Math.round((1-remaining/Math.max(.1,Math.abs((state.checkins[0]?.weight||current)-target)))*100)))};
+}
+function weekKey(date=new Date()){
+ const d=new Date(date),day=(d.getDay()+6)%7;d.setDate(d.getDate()-day);
+ return iso(d);
+}
+function weeklyReviewData(){
+ const key=weekKey(),nDays=Object.entries(state.nutritionByDate||{}).filter(([d])=>d>=key);
+ const avg=(field,target)=>nDays.length?Math.round(nDays.reduce((a,[,n])=>a+pct(n[field]||0,target),0)/nDays.length):0;
+ return {
+  key,missions:weeklyMissionCount(),protein:avg("protein",state.profile.proteinTarget),
+  calories:avg("calories",state.profile.calorieTarget),water:avg("waterMl",waterGoalMl()),
+  score:Math.round((weeklyMissionCount()/7*40)+(avg("protein",state.profile.proteinTarget)*.2)+(avg("waterMl",waterGoalMl())*.15)+(discipline()*.25))
+ };
+}
+function renderWeeklyReviewCard(){
+ const w=weeklyReviewData(),grade=w.score>=90?"A+":w.score>=80?"A":w.score>=70?"B":w.score>=60?"C":"D";
+ return `<div class="card"><span class="eyebrow">WEEKLY REVIEW</span><h2>Grade ${grade}</h2><div class="review-grid"><div><span>Missions</span><strong>${w.missions}/7</strong></div><div><span>Protein</span><strong>${w.protein}%</strong></div><div><span>Hydration</span><strong>${w.water}%</strong></div><div><span>Overall</span><strong>${w.score}</strong></div></div><textarea id="weeklyReviewNote" placeholder="บันทึกประจำสัปดาห์">${state.weeklyReviews[w.key]?.note||""}</textarea><button id="saveWeeklyReview" class="btn primary">Save Weekly Review</button></div>`;
+}
+function openQuickCapture(){
+ const root=document.createElement("div");root.className="food-modal show";
+ root.innerHTML=`<div class="food-modal-card quick-capture"><div class="space"><div><span class="eyebrow">QUICK CAPTURE</span><h2>เพิ่มข้อมูลด่วน</h2></div><button class="modal-x" data-close>×</button></div>
+ <div class="capture-grid">
+  <button data-capture="food"><strong>Food</strong><small>เพิ่มอาหาร</small></button>
+  <button data-capture="water"><strong>Water</strong><small>เพิ่มน้ำ</small></button>
+  <button data-capture="weight"><strong>Weight</strong><small>บันทึกน้ำหนัก</small></button>
+  <button data-capture="note"><strong>Note</strong><small>บันทึกข้อความ</small></button>
+ </div></div>`;
+ document.body.appendChild(root);root.querySelector("[data-close]").onclick=()=>root.remove();
+ root.querySelector('[data-capture="food"]').onclick=()=>{root.remove();openFoodModal({date:todayKey()})};
+ root.querySelector('[data-capture="water"]').onclick=()=>{const ml=+(prompt("ปริมาณน้ำ (ml)",250)||0);if(ml>0){nutritionToday().waterMl+=ml;save();toast("เพิ่มน้ำแล้ว")}root.remove()};
+ root.querySelector('[data-capture="weight"]').onclick=()=>{const w=+(prompt("น้ำหนักวันนี้ (kg)",latest().weight)||0);if(w>0){const date=todayKey();state.checkins=state.checkins.filter(x=>x.date!==date);state.checkins.push({date,weight:w,bf:null,waist:null,sleep:null});state.checkins.sort((a,b)=>a.date.localeCompare(b.date));save();maybeApplySmartTargets(false);toast("บันทึกน้ำหนักแล้ว")}root.remove()};
+ root.querySelector('[data-capture="note"]').onclick=()=>{const t=prompt("บันทึก");if(t){state.notes.push({date:todayKey(),text:t});save();toast("บันทึกแล้ว")}root.remove()};
+}
+function exportProgram(programId=state.program?.id){
+ const preset=allPrograms()[programId],workouts=PROGRAM_WORKOUTS[programId]||preset?.workouts||[];
+ const data=Object.assign({},preset,{workouts});
+ const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:"application/json"}));a.download="BN-Warrior-Program-"+(preset?.name||"Custom").replace(/\s+/g,"-")+".json";a.click();
+}
+async function importProgramFile(file){
+ try{
+  const p=JSON.parse(await file.text());
+  if(!p.id||!p.name||!Array.isArray(p.workouts)||!p.workouts.length)throw new Error("รูปแบบโปรแกรมไม่ถูกต้อง");
+  p.id="custom-"+Date.now();
+  state.customPrograms.push(p);save();renderSettings();toast("นำเข้าโปรแกรมแล้ว");
+ }catch(e){alert(e.message||"นำเข้าไม่สำเร็จ")}
+}
 function renderWarrior(){
  const m=warriorMetrics(),r=rankInfo(),review=reviewFor(),phase=workoutFor(todayIndex()+1).phase;
  $("warriorPage").innerHTML=`
@@ -616,7 +831,8 @@ function renderWarrior(){
    <div class="card"><span class="eyebrow">DAILY REVIEW</span><h2>Grade ${reviewGrade()}</h2><label>Energy 1–10<input id="reviewEnergy" type="number" min="1" max="10" value="${review.energy||""}"></label><label>Mood 1–10<input id="reviewMood" type="number" min="1" max="10" value="${review.mood||""}"></label><label>Soreness 1–10<input id="reviewSoreness" type="number" min="1" max="10" value="${review.soreness||""}"></label><textarea id="reviewNote" placeholder="บันทึกสั้น ๆ">${review.note||""}</textarea><button id="saveReview" class="btn primary">Save Review</button></div>
   </div>
  </div>
- <div class="card" style="margin-top:11px"><span class="eyebrow">HALL OF FAME</span><div class="hall-grid" style="margin-top:10px"><div><span>Longest Streak</span><strong>${streak()} days</strong></div><div><span>Total Volume</span><strong>${totalVolume().toLocaleString()}</strong></div><div><span>Personal Records</span><strong>${Object.keys(state.prs).length}</strong></div><div><span>Completed Sets</span><strong>${completedSets()}</strong></div><div><span>Training Time</span><strong>${formatMinutes(doneCount()*55)}</strong></div><div><span>Weight Change</span><strong>${bodyChange()} kg</strong></div></div></div>`;
+ ${renderWeeklyReviewCard()}<div class="card" style="margin-top:11px"><span class="eyebrow">HALL OF FAME</span><div class="hall-grid" style="margin-top:10px"><div><span>Longest Streak</span><strong>${streak()} days</strong></div><div><span>Total Volume</span><strong>${totalVolume().toLocaleString()}</strong></div><div><span>Personal Records</span><strong>${Object.keys(state.prs).length}</strong></div><div><span>Completed Sets</span><strong>${completedSets()}</strong></div><div><span>Training Time</span><strong>${formatMinutes(doneCount()*55)}</strong></div><div><span>Weight Change</span><strong>${bodyChange()} kg</strong></div></div></div>`;
+ const weeklyBtn=$("saveWeeklyReview");if(weeklyBtn)weeklyBtn.onclick=()=>{const w=weeklyReviewData();state.weeklyReviews[w.key]={note:$("weeklyReviewNote").value.trim(),score:w.score,savedAt:new Date().toISOString()};save();toast("บันทึก Weekly Review แล้ว")};
  $("saveReview").onclick=()=>{Object.assign(review,{energy:+$("reviewEnergy").value||0,mood:+$("reviewMood").value||0,soreness:+$("reviewSoreness").value||0,note:$("reviewNote").value.trim()});save();renderWarrior();toast("บันทึก Daily Review แล้ว")};
 }
 function renderAnalytics(){
@@ -636,7 +852,7 @@ function renderSettings(){
   <div><label>ชื่อ<input id="profileName" value="${p.name}"></label><label>วันเริ่มโปรแกรม<input id="startDate" type="date" value="${state.start}"></label><label>น้ำหนักเป้าหมาย (kg)<input id="targetWeight" type="number" step=".1" value="${p.targetWeight}"></label><label>Body Fat เป้าหมาย (%)<input id="targetBf" type="number" step=".1" value="${p.targetBf}"></label></div>
   <div><label>Calories Target<input id="calorieTarget" type="number" value="${p.calorieTarget}"></label><label>Protein Target (g)<input id="proteinTarget" type="number" value="${p.proteinTarget}"></label><label>Carb Target (g)<input id="carbTarget" type="number" value="${p.carbTarget}"></label><label>Fat Target (g)<input id="fatTarget" type="number" value="${p.fatTarget}"></label><label>น้ำต่อกิโลกรัม (ml/kg)<input id="waterPerKg" type="number" value="${p.waterMlPerKg}"></label><label>น้ำเพิ่มในวันฝึก (ml)<input id="workoutWater" type="number" value="${p.workoutWaterMl}"></label><label>ส่วนสูง (cm)<input id="heightCm" type="number" value="${p.heightCm}"></label><label>อายุ<input id="profileAge" type="number" value="${p.age}"></label><label>ระดับกิจกรรม<select id="activityFactor"><option value="1.3" ${p.activityFactor==1.3?"selected":""}>เบา</option><option value="1.45" ${p.activityFactor==1.45?"selected":""}>ปานกลาง</option><option value="1.6" ${p.activityFactor==1.6?"selected":""}>ค่อนข้างสูง</option></select></label><label>Calorie Deficit (%)<input id="deficitPct" type="number" value="${p.calorieDeficitPct}"></label><label><input id="smartTargets" type="checkbox" ${p.smartTargets?"checked":""} style="width:auto"> ปรับเป้าสารอาหารอัตโนมัติ</label><label><input id="compactMode" type="checkbox" ${state.settings.compact?"checked":""} style="width:auto"> Compact Dashboard</label><p class="muted">ค่าที่ระบบแนะนำตอนนี้: ${smartTargetSummary()}</p><button id="applySmartTargets" class="btn ghost">คำนวณและใช้เป้าปัจจุบัน</button></div>
  </div>
- <div class="card program-summary" style="margin-bottom:12px"><div class="space"><div><span class="eyebrow">CURRENT PROGRAM</span><h2>${state.program?.name||"Military Lean"}</h2><p class="muted">เริ่ม ${state.start} • ${state.program?.durationDays||84} วัน</p></div><button id="changeProgram" class="btn primary">เลือก / เริ่มโปรแกรม</button></div></div>
+ <div class="card developer-panel" style="margin-bottom:12px"><div class="space"><div><span class="eyebrow">DEVELOPER MODE</span><h2>Program Tools</h2></div><label class="dev-toggle"><input id="developerEnabled" type="checkbox" style="width:auto" ${state.developer?.enabled?"checked":""}> Enable</label></div><div class="developer-content ${state.developer?.enabled?"show":""}"><p class="muted">นำเข้า/ส่งออกโปรแกรมเป็น JSON เพื่อเพิ่มโปรแกรมใหม่โดยไม่แก้โค้ดหลัก</p><div class="cloud-actions"><button id="exportCurrentProgram" class="btn ghost">Export Current Program</button><label class="btn ghost">Import Program<input id="importProgram" type="file" accept=".json" hidden></label></div><div class="custom-program-list">${(state.customPrograms||[]).map(p=>`<div class="order"><div><strong>${p.name}</strong><div class="muted">${p.durationDays||84} วัน • ${(p.workouts||[]).length} templates</div></div><button class="btn danger" data-delete-program="${p.id}">ลบ</button></div>`).join("")||'<p class="muted">ยังไม่มี Custom Program</p>'}</div></div></div><div class="card program-summary" style="margin-bottom:12px"><div class="space"><div><span class="eyebrow">CURRENT PROGRAM</span><h2>${state.program?.name||"Military Lean"}</h2><p class="muted">เริ่ม ${state.start} • ${state.program?.durationDays||84} วัน</p></div><button id="changeProgram" class="btn primary">เลือก / เริ่มโปรแกรม</button></div></div>
  <div id="cloudSyncPanel" class="cloud-panel-host"></div>
  <div class="mobile-more-grid" style="margin-bottom:12px">
   <button class="btn ghost" data-more-page="calendarPage">84 Days</button>
@@ -670,6 +886,11 @@ function renderSettings(){
  document.querySelectorAll("[data-more-page]").forEach(b=>b.onclick=()=>showPage(b.dataset.morePage));
  $("applySmartTargets").onclick=()=>{maybeApplySmartTargets(true);renderSettings()};
  $("changeProgram").onclick=openProgramWizard;
+ $("developerEnabled").onchange=()=>{state.developer.enabled=$("developerEnabled").checked;save();renderSettings()};
+ const exportProgramBtn=$("exportCurrentProgram");if(exportProgramBtn)exportProgramBtn.onclick=()=>exportProgram();
+ const importProgramInput=$("importProgram");if(importProgramInput)importProgramInput.onchange=()=>importProgramFile(importProgramInput.files[0]);
+ document.querySelectorAll("[data-delete-program]").forEach(b=>b.onclick=()=>{if(confirm("ลบ Custom Program นี้หรือไม่?")){state.customPrograms=state.customPrograms.filter(p=>p.id!==b.dataset.deleteProgram);save();renderSettings()}});
+ 
  window.dispatchEvent(new CustomEvent("bn-warrior:settings-rendered"));
  $("exportData").onclick=exportData;$("importData").onchange=importData;$("resetData").onclick=()=>{if(confirm("ล้างข้อมูลทั้งหมดหรือไม่?")){state=clone(DEFAULT);save();renderAll()}};
 }
@@ -760,7 +981,7 @@ if("serviceWorker" in navigator && location.protocol!=="file:"){
  };
  const top=document.querySelector(".topbar>div:last-child");
  if(top){const s=document.createElement("span");s.id="storageStatus";s.className="storage-status";s.innerHTML="<i></i> บันทึกอัตโนมัติ";top.prepend(s)}
- document.body.classList.toggle("compact-mode",state.settings.compact);updateStorageStatus();
+ document.body.classList.toggle("compact-mode",state.settings.compact);updateStorageStatus();const fab=$("quickCaptureFab");if(fab)fab.onclick=openQuickCapture;
 })();
 
 })();

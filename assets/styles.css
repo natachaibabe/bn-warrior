@@ -678,3 +678,12 @@ input::placeholder,textarea::placeholder{color:#8d9292!important;opacity:1}
  .food-modal-card{width:100%;max-height:94vh;border-radius:20px 20px 0 0;padding:15px}
  .food-log-row{grid-template-columns:1fr}.food-log-row>div:last-child{justify-content:flex-end}
 }
+
+/* BN Warrior V17 Complete */
+.quick-fab{position:fixed;right:20px;bottom:88px;z-index:150;width:58px;height:58px;border:0;border-radius:50%;background:linear-gradient(145deg,var(--orange),var(--orange2));color:#fff;font-size:32px;font-weight:900;box-shadow:0 12px 35px rgba(255,106,0,.38)}
+.capture-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:14px}.capture-grid button{padding:18px;border:1px solid var(--line);border-radius:13px;background:#090a0a;color:#fff;text-align:left}.capture-grid strong,.capture-grid small{display:block}.capture-grid small{color:var(--muted);margin-top:4px}
+.goal-meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:10px;color:var(--muted);font-size:12px}.goal-meta strong{color:#fff}
+.review-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}.review-grid>div{padding:10px;border:1px solid var(--line);border-radius:10px;background:#090a0a}.review-grid span{display:block;color:var(--muted);font-size:10px}.review-grid strong{font-size:20px}
+.developer-content{display:none;margin-top:12px}.developer-content.show{display:block}.dev-toggle{display:flex;align-items:center;gap:7px}.custom-program-list{margin-top:10px}
+.remember-pass{display:flex!important;align-items:center;gap:8px;align-self:end;padding-bottom:10px}
+@media(max-width:620px){.quick-fab{right:14px;bottom:82px;width:52px;height:52px}.capture-grid,.review-grid{grid-template-columns:1fr 1fr}}

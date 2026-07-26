@@ -1,7 +1,7 @@
 {
-  "name": "BN Warrior V16",
+  "name": "BN Warrior V17",
   "short_name": "BN Warrior",
-  "description": "Fitness PWA with program setup, editable food log and private cloud sync",
+  "description": "Complete fitness PWA with real program engine, quick capture and encrypted sync",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

@@ -32,12 +32,11 @@ function requireBridge(){
 function clientIdValid(id){
  return /^[0-9]+-[a-z0-9_-]+\.apps\.googleusercontent\.com$/i.test((id||"").trim());
 }
-function getPassphrase(){
- return sessionStorage.getItem("bnw-cloud-passphrase")||"";
-}
-function setPassphrase(value){
- if(value)sessionStorage.setItem("bnw-cloud-passphrase",value);
- else sessionStorage.removeItem("bnw-cloud-passphrase");
+function rememberKey(){return "bnw-cloud-passphrase-device"}
+function getPassphrase(){return sessionStorage.getItem("bnw-cloud-passphrase")||localStorage.getItem(rememberKey())||""}
+function setPassphrase(value,remember=false){
+ if(value)sessionStorage.setItem("bnw-cloud-passphrase",value);else sessionStorage.removeItem("bnw-cloud-passphrase");
+ if(remember&&value)localStorage.setItem(rememberKey(),value);else if(!remember)localStorage.removeItem(rememberKey());
 }
 function bytesToBase64(bytes){
  let binary="";const chunk=0x8000;
@@ -293,7 +292,7 @@ function renderPanel(){
   <div class="cloud-status ${connected?"connected":statusClass}"><i class="cloud-status-dot"></i><div><strong>${connected?"เชื่อมต่อแล้ว":status.message}</strong><small>${c.lastSyncAt?"Sync ล่าสุด: "+new Date(c.lastSyncAt).toLocaleString("th-TH"):"ยังไม่เคย Sync"}</small></div></div>
   <div class="cloud-grid" style="margin-top:10px">
    <label>Google OAuth Client ID<input id="cloudClientId" placeholder="123...apps.googleusercontent.com" value="${c.clientId||""}"></label>
-   <label>รหัสเข้ารหัสส่วนตัว<input id="cloudPassphrase" type="password" placeholder="อย่างน้อย 8 ตัวอักษร" value="${getPassphrase()}"></label>
+   <label>รหัสเข้ารหัสส่วนตัว<input id="cloudPassphrase" type="password" placeholder="อย่างน้อย 8 ตัวอักษร" value="${getPassphrase()}"></label><label class="remember-pass"><input id="rememberPassphrase" type="checkbox" style="width:auto" ${localStorage.getItem(rememberKey())?"checked":""}> จำรหัสบนอุปกรณ์นี้</label>
   </div>
   <label><input id="cloudAutoSync" type="checkbox" style="width:auto" ${c.autoSync!==false?"checked":""}> Auto Sync ขณะเปิดแอปและเชื่อม Google อยู่</label>
   <p class="cloud-passphrase-note">รหัสเข้ารหัสเก็บเฉพาะใน session ของเบราว์เซอร์ ไม่ส่งขึ้น Google และต้องใช้รหัสเดียวกันทุกเครื่อง หากลืมรหัสจะเปิด Cloud Backup ไม่ได้</p>
@@ -312,7 +311,7 @@ function renderPanel(){
   const id=q("cloudClientId").value.trim(),pass=q("cloudPassphrase").value;
   if(id && !clientIdValid(id))return alert("รูปแบบ Client ID ไม่ถูกต้อง");
   if(pass && pass.length<8)return alert("รหัสเข้ารหัสควรมีอย่างน้อย 8 ตัวอักษร");
-  setPassphrase(pass);
+  setPassphrase(pass,q("rememberPassphrase").checked);
   bridge().updateCloud({clientId:id,autoSync:q("cloudAutoSync").checked,encrypted:true});
   setStatus("idle","บันทึกการตั้งค่าแล้ว");
  };
@@ -320,7 +319,7 @@ function renderPanel(){
   const id=q("cloudClientId").value.trim(),pass=q("cloudPassphrase").value;
   if(!clientIdValid(id))return alert("กรุณาใส่ Google OAuth Client ID");
   if(pass.length<8)return alert("กรุณาตั้งรหัสเข้ารหัสอย่างน้อย 8 ตัวอักษร");
-  setPassphrase(pass);
+  setPassphrase(pass,q("rememberPassphrase").checked);
   bridge().updateCloud({clientId:id,autoSync:q("cloudAutoSync").checked,encrypted:true});
   connect();
  };
