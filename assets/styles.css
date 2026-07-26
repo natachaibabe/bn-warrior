@@ -292,3 +292,338 @@ input::placeholder,textarea::placeholder{color:#8d9292!important;opacity:1}
   }
   .mobile-more-grid{grid-template-columns:repeat(2,1fr)}
 }
+
+
+/* =========================================================
+   BN WARRIOR V13 — MOBILE LAYOUT REBUILD
+   ========================================================= */
+@media (max-width: 620px){
+
+  html,body{overflow-x:hidden}
+  body{background:#050505}
+
+  .main{
+    width:100%;
+    max-width:none;
+    padding:8px 8px 92px!important;
+  }
+
+  /* Compact app header */
+  .topbar{
+    align-items:center;
+    margin:0 0 8px!important;
+    padding:2px 2px 0;
+  }
+  .topbar-copy .eyebrow{
+    display:none;
+  }
+  .topbar-copy h2{
+    margin:0!important;
+    font-size:18px!important;
+    line-height:1.1;
+  }
+  .topbar>div:last-child{
+    gap:6px!important;
+    align-items:center;
+  }
+  .storage-status{
+    font-size:9px!important;
+    padding:5px 7px!important;
+    white-space:nowrap;
+  }
+  #backupTop{
+    padding:8px 10px!important;
+    font-size:12px!important;
+  }
+
+  /* Hero becomes a clean stacked mobile card */
+  .hero{
+    min-height:0!important;
+    height:auto!important;
+    padding:14px!important;
+    overflow:hidden;
+    display:grid!important;
+    grid-template-columns:1fr 122px;
+    grid-template-areas:
+      "copy person"
+      "target target";
+    column-gap:8px;
+    row-gap:12px;
+  }
+
+  .hero:after{
+    width:190px!important;
+    height:190px!important;
+    right:-52px!important;
+    top:70px!important;
+    opacity:.75;
+  }
+
+  .hero-copy{
+    grid-area:copy;
+    max-width:none!important;
+    padding:0!important;
+    position:relative;
+    z-index:5;
+  }
+
+  .hero-copy .eyebrow{
+    font-size:9px!important;
+  }
+
+  .hero h1{
+    font-size:31px!important;
+    line-height:1!important;
+    margin:6px 0 12px!important;
+  }
+
+  .v7-mission-focus{
+    margin:0 0 10px!important;
+    padding:8px 0!important;
+  }
+
+  .v7-mission-focus strong{
+    font-size:19px!important;
+    line-height:1.08;
+  }
+
+  .v7-quote{
+    display:none;
+  }
+
+  .level{
+    font-size:38px!important;
+    line-height:.95!important;
+  }
+
+  .hero-copy .bar{
+    width:100%;
+    margin:6px 0!important;
+  }
+
+  #startMission{
+    width:100%;
+    margin-top:10px!important;
+    padding:11px 8px!important;
+    font-size:15px!important;
+  }
+
+  .hero-person-wrap{
+    grid-area:person;
+    position:relative!important;
+    inset:auto!important;
+    right:auto!important;
+    bottom:auto!important;
+    width:122px!important;
+    height:245px!important;
+    max-width:none!important;
+    align-self:end;
+    justify-self:end;
+    overflow:hidden;
+    z-index:4;
+  }
+
+  .hero-person-wrap:before{
+    inset:16% -15% 0!important;
+  }
+
+  .hero-person-wrap img{
+    width:100%!important;
+    height:100%!important;
+    max-width:none!important;
+    object-fit:contain!important;
+    object-position:center bottom!important;
+  }
+
+  .hero-fade{
+    display:none!important;
+  }
+
+  .target-panel{
+    grid-area:target;
+    position:relative!important;
+    inset:auto!important;
+    left:auto!important;
+    right:auto!important;
+    bottom:auto!important;
+    width:100%!important;
+    max-width:none!important;
+    margin:0!important;
+    padding:11px!important;
+    z-index:7!important;
+  }
+
+  .target-grid{
+    grid-template-columns:1fr auto 1fr!important;
+  }
+
+  .target-grid strong{
+    font-size:18px!important;
+  }
+
+  .target-grid small{
+    font-size:10px!important;
+  }
+
+  /* Main two-column HUD becomes stacked */
+  .hud{
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    gap:8px!important;
+  }
+
+  .hud-side{
+    display:grid!important;
+    gap:8px!important;
+  }
+
+  .readiness-wrap{
+    grid-template-columns:100px 1fr!important;
+    gap:8px!important;
+  }
+
+  .readiness-ring{
+    width:96px!important;
+    height:96px!important;
+  }
+
+  .readiness-ring:after{
+    inset:10px!important;
+  }
+
+  .readiness-ring strong{
+    font-size:28px!important;
+  }
+
+  .score-list{
+    gap:5px!important;
+  }
+
+  .score-item{
+    padding:7px 8px!important;
+    font-size:12px!important;
+  }
+
+  /* Macro rings: 2 columns, smaller */
+  .macro-rings{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:8px!important;
+  }
+
+  .macro-ring{
+    aspect-ratio:1.2!important;
+    border-radius:16px!important;
+  }
+
+  .macro-ring:after{
+    inset:7px!important;
+    border-radius:12px!important;
+  }
+
+  .macro-ring strong{
+    font-size:17px!important;
+  }
+
+  /* Stats and cards */
+  .stats{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:6px!important;
+  }
+
+  .stat{
+    padding:9px!important;
+  }
+
+  .stat strong{
+    font-size:17px!important;
+  }
+
+  .timeline84{
+    grid-template-columns:repeat(7,1fr)!important;
+    gap:4px!important;
+  }
+
+  .daycell{
+    min-height:31px!important;
+    font-size:8px!important;
+  }
+
+  .quick-actions{
+    grid-template-columns:1fr!important;
+  }
+
+  .achievement-grid{
+    grid-template-columns:1fr 1fr!important;
+  }
+
+  /* Bottom nav */
+  .bottom-nav{
+    left:6px!important;
+    right:6px!important;
+    transform:none!important;
+    width:auto!important;
+    bottom:6px!important;
+    padding:5px!important;
+    border-radius:14px!important;
+  }
+
+  .bottom-nav button{
+    min-width:0!important;
+    padding:10px 2px!important;
+    font-size:9px!important;
+    line-height:1.05;
+  }
+
+  .bottom-nav button.active{
+    border-radius:10px!important;
+  }
+
+  /* Prevent content from hiding behind nav */
+  .page{
+    padding-bottom:18px;
+  }
+
+  .card{
+    border-radius:14px!important;
+  }
+}
+
+@media (max-width: 390px){
+  .hero{
+    grid-template-columns:1fr 104px!important;
+  }
+  .hero-person-wrap{
+    width:104px!important;
+    height:225px!important;
+  }
+  .hero h1{
+    font-size:28px!important;
+  }
+  .target-grid strong{
+    font-size:16px!important;
+  }
+}
+
+
+/* =========================================================
+   BN WARRIOR V14 PRODUCTION
+   ========================================================= */
+.v14-dashboard-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px;margin-top:11px}
+.radar-svg{width:100%;max-height:300px}
+.daily-timeline{display:grid;gap:7px;margin-top:10px}
+.timeline-item{display:grid;grid-template-columns:60px 1fr 24px;gap:8px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:10px;background:#090a0a;color:#fff;text-align:left}
+.timeline-item span{color:var(--orange);font-weight:900}.timeline-item i{font-style:normal;text-align:center}.timeline-item.done{background:#122014;border-color:#39733c}
+.brief-list{display:grid;grid-template-columns:1fr 1fr;gap:7px}.brief-list>div{padding:9px;border:1px solid var(--line);border-radius:10px;background:#090a0a}.brief-list span{display:block;color:var(--muted);font-size:10px}.brief-list strong{font-size:15px}
+.dna-bars{display:grid;gap:8px}.dna-row{display:grid;grid-template-columns:90px 1fr 36px;gap:8px;align-items:center}.dna-row span{color:var(--muted)}
+.hall-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}.hall-grid>div{padding:12px;border:1px solid var(--line);border-radius:11px;background:#090a0a}.hall-grid span{display:block;color:var(--muted);font-size:10px}.hall-grid strong{font-size:18px}
+.compact-mode .card{padding:11px}.compact-mode .hero{min-height:390px}.compact-mode .quick-actions{grid-template-columns:repeat(5,1fr)}
+@media(max-width:1180px){.v14-dashboard-grid{grid-template-columns:1fr 1fr}.hall-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:760px){.v14-dashboard-grid{grid-template-columns:1fr}.hall-grid{grid-template-columns:1fr 1fr}.dna-row{grid-template-columns:82px 1fr 32px}}
+@media(max-width:620px){
+  .v14-dashboard-grid{gap:8px}
+  .radar-svg{max-height:250px}
+  .timeline-item{grid-template-columns:50px 1fr 22px;padding:9px}
+  .brief-list{grid-template-columns:1fr 1fr}
+  .hall-grid{grid-template-columns:1fr 1fr}
+  .compact-mode .hero{min-height:0!important}
+}

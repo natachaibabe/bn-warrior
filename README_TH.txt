@@ -1,29 +1,21 @@
-BN WARRIOR V11 PRODUCTION
+BN WARRIOR V14 PRODUCTION
 
-แก้ไขหลัก:
-- Hero แยกเป็น assets/hero.webp และบีบอัดเหลือขนาดเล็ก
-- Nutrition แยกตามวันที่อัตโนมัติ ดูย้อนหลังได้ ไม่ต้องกดเริ่มวันใหม่
-- Profile/Target/Macro goals แก้ได้จากหน้า More และทุกหน้าดึงจากจุดเดียว
-- Water ใช้ ml/L และคำนวณเป้าจากน้ำหนักล่าสุด + น้ำเพิ่มในวันฝึก
-- Progress Photo ย่อและบีบอัดอัตโนมัติก่อนบันทึก
-- 84 วันมี Phase: Foundation, Deload, Build & Burn, Athletic Definition, Taper & Test
-- ชื่อ Backup เปลี่ยนเป็น V11 และแนบวันที่
-- CSS/JavaScript/Workout data แยกไฟล์ อ่านและดูแลต่อได้ง่ายกว่าเดิม
+ฟีเจอร์หลัก:
+- Responsive Desktop / Tablet / Mobile ในโค้ดชุดเดียว
+- Hero และ Digital Target แบบ Mobile-first
+- Smart Nutrition Targets และ Nutrition แยกตามวันที่
+- Dynamic Water เป้าหมายตามน้ำหนักและวันฝึก
+- Periodization 84 วันพร้อม Deload
+- Warrior DNA Radar: Strength, Endurance, Mobility, Recovery, Nutrition, Discipline
+- Warrior Score 0–100
+- Daily Mission Timeline
+- Morning Brief และ Daily Review
+- Hall of Fame: Streak, Volume, PR, Sets, Training Time, Weight Change
+- Offline AI Commander
+- Analytics, Exercise Library, Calendar, Progress Photos
+- LocalStorage + IndexedDB + Export/Import Backup
+- PWA Offline และติดตั้งบนมือถือ/คอมได้
 
-เปิดทดสอบบน Windows:
-1. เปิด START_WINDOWS.bat
-2. เปิด http://localhost:8080
-3. กดติดตั้งแอป
-
-มือถือ:
-- อัปโหลดโฟลเดอร์ขึ้น GitHub Pages / Cloudflare Pages / Netlify แบบฟรี
-- Android: เปิดเว็บแล้วกดติดตั้ง
-- iPhone: Safari → Share → Add to Home Screen
-
-
-V12 เพิ่มเติม:
-- Mobile Hero กระชับขึ้นและ Digital Target ไม่ทับปุ่ม
-- Bottom Navigation มือถือเหลือ 5 เมนูหลัก
-- Calendar / Commander / Analytics / Library อยู่ใน More
-- Smart Nutrition Target คำนวณจากน้ำหนักเฉลี่ยล่าสุด ส่วนสูง อายุ กิจกรรม และ Calorie Deficit
-- ปรับเป้าอัตโนมัติเมื่อค่าน้ำหนักเฉลี่ยเปลี่ยนเกิน Threshold
+อัปเดต GitHub:
+อัปโหลดไฟล์ทั้งหมดในโฟลเดอร์ทับของเดิม รอ GitHub Pages 1–3 นาที
+จากนั้นปิด PWA แล้วเปิดใหม่ หากยังเห็นของเก่าให้ Reload หนึ่งครั้ง

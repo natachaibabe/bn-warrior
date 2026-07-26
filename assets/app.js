@@ -2,7 +2,7 @@
 (function(){
 "use strict";
 const HERO_IMAGE="assets/hero.webp";
-const KEY="bn_warrior_v12_mobile_smart";
+const KEY="bn_warrior_v14_production";
 let memoryStore={};
 const STORE={
  get(k){try{return localStorage.getItem(k)}catch(e){return memoryStore[k]||null}},
@@ -58,14 +58,14 @@ const DEFAULT={
  },
  done:{},logs:{},checkins:[],scans:[],prs:{},photos:{},
  nutritionByDate:{},
- notes:[],chat:[],settings:{sound:true},selectedDay:null
+ notes:[],chat:[],dailyReviews:{},timeline:{},settings:{sound:true,compact:false},selectedDay:null
 }
 let state=loadState(),calendarDate=new Date(),timer={sec:90,id:null};
-const NAV=[["commandPage","Command"],["workoutPage","Workout"],["calendarPage","84 Days"],["nutritionPage","Nutrition"],["progressPage","Progress"],["coachPage","Commander"],["analyticsPage","Analytics"],["libraryPage","Library"],["settingsPage","More"]];
+const NAV=[["commandPage","Command"],["workoutPage","Workout"],["calendarPage","84 Days"],["nutritionPage","Nutrition"],["progressPage","Progress"],["coachPage","Commander"],["warriorPage","Warrior DNA"],["analyticsPage","Analytics"],["libraryPage","Library"],["settingsPage","More"]];
 function clone(v){return JSON.parse(JSON.stringify(v))}
 function loadState(){
  try{
-  const raw=STORE.get(KEY)||STORE.get("bn_warrior_v11_production")||STORE.get("bn_warrior_v10_pwa")||STORE.get("bn_warrior_v9_production")||STORE.get("bn_warrior_v8_final")||STORE.get("bn_warrior_v7_production")||STORE.get("bn_warrior_v6_final")||STORE.get("bn_warrior_v5_final")||STORE.get("bn_warrior_v42_hud")||STORE.get("bn_warrior_v4_hud")||STORE.get("bn_warrior_v3_rc")||STORE.get("bn_warrior_v2_portable");
+  const raw=STORE.get(KEY)||STORE.get("bn_warrior_v13_mobile_fix")||STORE.get("bn_warrior_v12_mobile_smart")||STORE.get("bn_warrior_v11_production")||STORE.get("bn_warrior_v10_pwa")||STORE.get("bn_warrior_v9_production")||STORE.get("bn_warrior_v8_final")||STORE.get("bn_warrior_v7_production")||STORE.get("bn_warrior_v6_final")||STORE.get("bn_warrior_v5_final")||STORE.get("bn_warrior_v42_hud")||STORE.get("bn_warrior_v4_hud")||STORE.get("bn_warrior_v3_rc")||STORE.get("bn_warrior_v2_portable");
   if(!raw)return clone(DEFAULT);
   const old=JSON.parse(raw);
   const migrated=Object.assign(clone(DEFAULT),old,{
@@ -210,6 +210,53 @@ function nutritionScore(){const n=nutritionToday(),p=state.profile;return Math.r
 function offlineCommander(q){q=(q||"").toLowerCase();const l=latest(),n=nutritionToday(),p=state.profile;if(/วันนี้|workout|เล่นอะไร|ฝึก/.test(q))return"วันนี้คือ "+workoutFor(todayIndex()+1).name+" • Phase: "+workoutFor(todayIndex()+1).phase.name+" ใช้เวลาประมาณ "+workoutFor(todayIndex()+1).duration+" นาที";if(/โปรตีน|protein|กิน/.test(q))return"โปรตีน "+n.protein+"/"+p.proteinTarget+" กรัม เหลือ "+Math.max(0,p.proteinTarget-n.protein)+" กรัม";if(/คาร์บ|carb/.test(q))return"คาร์บ "+n.carbs+"/"+p.carbTarget+" กรัม เหลือ "+Math.max(0,p.carbTarget-n.carbs)+" กรัม";if(/ไขมัน|fat/.test(q))return"ไขมัน "+n.fat+"/"+p.fatTarget+" กรัม เหลือ "+Math.max(0,p.fatTarget-n.fat)+" กรัม";if(/น้ำ|water/.test(q))return"น้ำ "+(n.waterMl/1000).toFixed(2)+"/"+(waterGoalMl()/1000).toFixed(2)+" ลิตร เหลือ "+(Math.max(0,waterGoalMl()-n.waterMl)/1000).toFixed(2)+" ลิตร";if(/นอน|sleep|พัก|recovery/.test(q))return"นอนล่าสุด "+(l.sleep||0)+" ชั่วโมง "+((l.sleep||0)<6?"ลดความหนักลงประมาณ 10%":"ทำตามโปรแกรมได้");if(/เพิ่มน้ำหนัก|overload|หนัก/.test(q))return workoutFor(todayIndex()+1).phase.deload?"สัปดาห์นี้เป็น Deload ให้ลด Volume และไม่ไล่ PR":"เพิ่มน้ำหนักเมื่อทำครบทุกเซ็ตและถึงช่วงครั้งบนสุด โดยเพิ่มประมาณ 1 กก. ต่อดัมเบล";return commanderText()}
 
 function addChat(role,text){state.chat.push({role,text,date:new Date().toISOString()});if(state.chat.length>60)state.chat=state.chat.slice(-60);save()}
+
+function warriorMetrics(){
+ const n=nutritionToday(),p=state.profile,l=latest(),vols=exerciseVolumes();
+ const strength=Math.min(100,Math.round((Object.keys(state.prs).length*10)+(completedSets()/60*55)+(Math.min(totalVolume(),12000)/12000*35)));
+ const endurance=Math.min(100,Math.round((doneCount()/84*55)+(weeklyMissionCount()/7*30)+(streak()/14*15)));
+ const mobility=Math.min(100,Math.round((vols.Mobility||0)>0?55+Math.min(45,(vols.Mobility||0)/300):Math.min(45,doneCount()*1.5)));
+ const recovery=Math.min(100,Math.round(pct(l.sleep,p.sleepTarget)*.65+readiness()*.35));
+ const nutrition=Math.min(100,nutritionScore());
+ const disciplineScore=Math.min(100,discipline());
+ return {Strength:strength,Endurance:endurance,Mobility:mobility,Recovery:recovery,Nutrition:nutrition,Discipline:disciplineScore};
+}
+function warriorScore(){
+ const m=warriorMetrics(),vals=Object.values(m);
+ return Math.round(vals.reduce((a,b)=>a+b,0)/vals.length);
+}
+function radarSvg(metrics){
+ const labels=Object.keys(metrics),values=Object.values(metrics),cx=150,cy=145,R=105;
+ const points=(radius)=>labels.map((_,i)=>{const a=-Math.PI/2+i*Math.PI*2/labels.length;return [cx+Math.cos(a)*radius,cy+Math.sin(a)*radius]});
+ const rings=[.25,.5,.75,1].map(k=>'<polygon points="'+points(R*k).map(p=>p.join(",")).join(" ")+'" fill="none" stroke="#343636" stroke-width="1"/>').join("");
+ const axes=points(R).map(p=>'<line x1="'+cx+'" y1="'+cy+'" x2="'+p[0]+'" y2="'+p[1]+'" stroke="#292b2b"/>').join("");
+ const data=labels.map((_,i)=>{const a=-Math.PI/2+i*Math.PI*2/labels.length,r=R*values[i]/100;return [cx+Math.cos(a)*r,cy+Math.sin(a)*r]}).map(p=>p.join(",")).join(" ");
+ const texts=labels.map((l,i)=>{const a=-Math.PI/2+i*Math.PI*2/labels.length,x=cx+Math.cos(a)*(R+28),y=cy+Math.sin(a)*(R+28);return '<text x="'+x+'" y="'+y+'" text-anchor="middle" dominant-baseline="middle" fill="#b8bcbc" font-size="11">'+l+'</text>'}).join("");
+ return '<svg viewBox="0 0 300 290" class="radar-svg">'+rings+axes+'<polygon points="'+data+'" fill="rgba(255,106,0,.22)" stroke="#ff6a00" stroke-width="3"/>'+texts+'<text x="'+cx+'" y="'+cy+'" text-anchor="middle" dominant-baseline="middle" fill="#fff" font-size="26" font-weight="900">'+warriorScore()+'</text></svg>';
+}
+function timelineDefaults(){
+ return [
+  {time:"07:00",label:"Morning water",type:"water"},
+  {time:"09:00",label:"Protein meal",type:"protein"},
+  {time:"13:00",label:"Lunch & hydration",type:"nutrition"},
+  {time:"18:00",label:"Workout mission",type:"workout"},
+  {time:"22:30",label:"Sleep preparation",type:"sleep"}
+ ];
+}
+function timelineToday(){
+ const key=todayKey();
+ if(!state.timeline[key])state.timeline[key]=timelineDefaults().map((x,i)=>Object.assign({id:i,done:false},x));
+ return state.timeline[key];
+}
+function reviewFor(date=todayKey()){
+ if(!state.dailyReviews[date])state.dailyReviews[date]={energy:0,mood:0,soreness:0,note:""};
+ return state.dailyReviews[date];
+}
+function reviewGrade(){
+ const r=reviewFor(),score=(+r.energy||0)*10+(+r.mood||0)*10+(10-(+r.soreness||0))*5+readiness()*.35;
+ return score>=85?"A+":score>=75?"A":score>=65?"B":score>=50?"C":"D";
+}
+function formatMinutes(min){return Math.floor(min/60)+"h "+String(min%60).padStart(2,"0")+"m"}
 function readiness(){
  const l=latest(),n=nutritionToday(),p=state.profile;
  return Math.round(Math.min(30,(l.sleep||0)/Math.max(1,p.sleepTarget)*30)+Math.min(22,pct(n.protein,p.proteinTarget)*.22)+Math.min(13,pct(n.carbs,p.carbTarget)*.13)+Math.min(10,pct(n.fat,p.fatTarget)*.10)+Math.min(15,pct(n.waterMl,waterGoalMl())*.15)+Math.min(10,streak()/7*10));
@@ -253,7 +300,7 @@ function showPage(id){
 }
 function toast(msg){const t=$("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),1700)}
 function stat(label,value){return'<div class="stat"><span>'+label+'</span><strong>'+value+'</strong></div>'}
-function renderAll(){renderSidebar();renderCommand();renderWorkout();renderCalendar();renderNutrition();renderProgress();renderCoach();renderAnalytics();renderLibrary();renderSettings()}
+function renderAll(){renderSidebar();renderCommand();renderWorkout();renderCalendar();renderNutrition();renderProgress();renderCoach();renderWarrior();renderAnalytics();renderLibrary();renderSettings()}
 function renderSidebar(){const r=rankInfo();$("sideRank").textContent=r.current.name;$("sideXp").style.width=r.progress+"%"}
 function macroRing(label,value,target,unit,color){
  const percent=Math.round(pct(value,target));
@@ -289,9 +336,17 @@ function renderCommand(){
  <div class="stats" style="margin-top:11px">${stat("Day",day+"/84")}${stat("Week",(Math.floor((day-1)/7)+1)+"/12")}${stat("Phase",w.phase.name)}${stat("Weight",current.toFixed(1)+" kg")}${stat("Sets",completedSets())}${stat("XP",xpTotal().toLocaleString())}</div>
  <div class="card" style="margin-top:11px"><div class="space"><div><span class="eyebrow">84-DAY TRANSFORMATION TIMELINE</span><h2>Operation Progress</h2></div><strong>${campaign}% Complete</strong></div><div class="bar"><i style="width:${campaign}%"></i></div><div class="timeline84" style="margin-top:12px">${Array.from({length:84},(_,i)=>'<button class="daycell '+(state.done[i+1]?"done ":"")+(i<todayIndex()&&!state.done[i+1]?"missed ":"")+(i===todayIndex()?"today ":"")+(i>todayIndex()?"future":"")+'" data-timeline-day="'+(i+1)+'">'+(i+1)+'</button>').join("")}</div><div class="legend"><span><i class="dot today"></i>Today</span><span><i class="dot done"></i>Completed</span><span><i class="dot missed"></i>Missed</span><span><i class="dot"></i>Upcoming</span></div><p class="muted" style="margin:9px 0 0">Day ${day} of 84 • Completed ${completed} missions • Remaining ${84-day} days</p></div>
  <div class="card" style="margin-top:11px"><span class="eyebrow">QUICK ACTIONS</span><div class="quick-actions" style="margin-top:10px"><button id="qaWorkout" class="quick-action primary"><span class="icon">▶</span><div><strong>Start Workout</strong><small>Begin today's mission</small></div></button><button id="qaNutrition" class="quick-action"><span class="icon">N</span><div><strong>Fuel Up</strong><small>Log nutrition</small></div></button><button id="qaProgress" class="quick-action"><span class="icon">P</span><div><strong>View Progress</strong><small>Track results</small></div></button><button id="qaCoach" class="quick-action"><span class="icon">AI</span><div><strong>AI Commander</strong><small>Daily guidance</small></div></button><button id="qaCalendar" class="quick-action"><span class="icon">84</span><div><strong>Operation Calendar</strong><small>Plan your day</small></div></button></div></div>
- <div class="card" style="margin-top:11px"><span class="eyebrow">ACHIEVEMENTS</span><div class="achievement-grid" style="margin-top:10px">${achievements().map(a=>'<div class="achievement '+(a[2]?"unlocked":"")+'"><div class="icon">'+a[0]+'</div><strong>'+a[1]+'</strong></div>').join("")}</div></div>`;
+ 
+ <div class="v14-dashboard-grid">
+  <div class="card"><div class="space"><div><span class="eyebrow">WARRIOR SCORE</span><h2>${warriorScore()} / 100</h2></div><button id="openWarrior" class="btn ghost">Details</button></div>${radarSvg(warriorMetrics())}</div>
+  <div class="card"><span class="eyebrow">DAILY TIMELINE</span><h2>Mission Schedule</h2><div class="daily-timeline">${timelineToday().map(x=>'<button class="timeline-item '+(x.done?"done":"")+'" data-time-id="'+x.id+'"><span>'+x.time+'</span><strong>'+x.label+'</strong><i>'+(x.done?"✓":"○")+'</i></button>').join("")}</div></div>
+  <div class="card"><span class="eyebrow">MORNING BRIEF</span><h2>Commander Focus</h2><div class="brief-list"><div><span>Readiness</span><strong>${readiness()}</strong></div><div><span>Nutrition</span><strong>${nutritionScore()}</strong></div><div><span>Recovery</span><strong>${Math.round(pct(l.sleep,p.sleepTarget))}</strong></div><div><span>Today</span><strong>${w.name}</strong></div></div><div class="order" style="margin-top:10px"><div><strong>Recommendation</strong><div class="muted">${commanderText()}</div></div></div></div>
+ </div>
+<div class="card" style="margin-top:11px"><span class="eyebrow">ACHIEVEMENTS</span><div class="achievement-grid" style="margin-top:10px">${achievements().map(a=>'<div class="achievement '+(a[2]?"unlocked":"")+'"><div class="icon">'+a[0]+'</div><strong>'+a[1]+'</strong></div>').join("")}</div></div>`;
  $("startMission").onclick=$("qaWorkout").onclick=()=>{state.selectedDay=day;save();showPage("workoutPage")};
  $("qaNutrition").onclick=()=>showPage("nutritionPage");$("qaProgress").onclick=()=>showPage("progressPage");$("qaCoach").onclick=()=>showPage("coachPage");$("qaCalendar").onclick=()=>showPage("calendarPage");
+ $("openWarrior").onclick=()=>showPage("warriorPage");
+ document.querySelectorAll("[data-time-id]").forEach(b=>b.onclick=()=>{const item=timelineToday().find(x=>x.id===+b.dataset.timeId);if(item){item.done=!item.done;save();renderCommand()}});
  document.querySelectorAll("[data-timeline-day]").forEach(b=>b.onclick=()=>{state.selectedDay=+b.dataset.timelineDay;save();showPage("workoutPage")});
 }
 function previousLog(day,ei){for(let d=day-7;d>=1;d-=7){if(state.logs["d"+d]?.[ei])return state.logs["d"+d][ei]}return null}
@@ -403,9 +458,23 @@ function renderCoach(){
  const send=()=>{const q=$("chatInput").value.trim();if(!q)return;addChat("user",q);addChat("ai",offlineCommander(q));renderCoach()};
  $("chatSend").onclick=send;$("chatInput").onkeydown=e=>{if(e.key==="Enter")send()};document.querySelectorAll("[data-q]").forEach(b=>b.onclick=()=>{$("chatInput").value=b.dataset.q;send()});
 }
+function renderWarrior(){
+ const m=warriorMetrics(),r=rankInfo(),review=reviewFor(),phase=workoutFor(todayIndex()+1).phase;
+ $("warriorPage").innerHTML=`
+ <div class="two grid">
+  <div class="card"><span class="eyebrow">WARRIOR DNA</span><h2>${warriorScore()} / 100</h2>${radarSvg(m)}<div class="dna-bars">${Object.entries(m).map(([k,v])=>'<div class="dna-row"><span>'+k+'</span><div class="bar"><i style="width:'+v+'%"></i></div><strong>'+v+'</strong></div>').join("")}</div></div>
+  <div class="grid">
+   <div class="card"><span class="eyebrow">CURRENT RANK</span><h2>${r.current.name}</h2><div class="bar"><i style="width:${r.progress}%"></i></div><p class="muted">${r.xp.toLocaleString()} XP • Next ${r.next.name}</p></div>
+   <div class="card"><span class="eyebrow">CURRENT PHASE</span><h2>${phase.name}</h2><p class="muted">${phase.deload?"Recovery-focused week. ลด Volume และไม่ไล่ PR":"Progressive training phase. รักษาฟอร์มและเพิ่มโหลดอย่างมีระบบ"}</p></div>
+   <div class="card"><span class="eyebrow">DAILY REVIEW</span><h2>Grade ${reviewGrade()}</h2><label>Energy 1–10<input id="reviewEnergy" type="number" min="1" max="10" value="${review.energy||""}"></label><label>Mood 1–10<input id="reviewMood" type="number" min="1" max="10" value="${review.mood||""}"></label><label>Soreness 1–10<input id="reviewSoreness" type="number" min="1" max="10" value="${review.soreness||""}"></label><textarea id="reviewNote" placeholder="บันทึกสั้น ๆ">${review.note||""}</textarea><button id="saveReview" class="btn primary">Save Review</button></div>
+  </div>
+ </div>
+ <div class="card" style="margin-top:11px"><span class="eyebrow">HALL OF FAME</span><div class="hall-grid" style="margin-top:10px"><div><span>Longest Streak</span><strong>${streak()} days</strong></div><div><span>Total Volume</span><strong>${totalVolume().toLocaleString()}</strong></div><div><span>Personal Records</span><strong>${Object.keys(state.prs).length}</strong></div><div><span>Completed Sets</span><strong>${completedSets()}</strong></div><div><span>Training Time</span><strong>${formatMinutes(doneCount()*55)}</strong></div><div><span>Weight Change</span><strong>${bodyChange()} kg</strong></div></div></div>`;
+ $("saveReview").onclick=()=>{Object.assign(review,{energy:+$("reviewEnergy").value||0,mood:+$("reviewMood").value||0,soreness:+$("reviewSoreness").value||0,note:$("reviewNote").value.trim()});save();renderWarrior();toast("บันทึก Daily Review แล้ว")};
+}
 function renderAnalytics(){
  const vols=exerciseVolumes(),maxV=Math.max(1,...Object.values(vols));
- $("analyticsPage").innerHTML=`<div class="card"><span class="eyebrow">PERFORMANCE ANALYTICS</span><h2>Training Intelligence</h2><div class="analytics-grid"><div class="metric-card"><span>Workouts</span><strong>${doneCount()}</strong></div><div class="metric-card"><span>Total Sets</span><strong>${completedSets()}</strong></div><div class="metric-card"><span>Total Volume</span><strong>${totalVolume().toLocaleString()}</strong></div><div class="metric-card"><span>XP</span><strong>${xpTotal().toLocaleString()}</strong></div><div class="metric-card"><span>Weight Change</span><strong>${bodyChange()} kg</strong></div><div class="metric-card"><span>Body Fat Change</span><strong>${bodyFatChange()}%</strong></div><div class="metric-card"><span>Streak</span><strong>${streak()} days</strong></div><div class="metric-card"><span>PRs</span><strong>${Object.keys(state.prs).length}</strong></div></div></div><div class="two grid" style="margin-top:11px"><div class="card"><span class="eyebrow">MUSCLE VOLUME</span><h2>Training Balance</h2><div class="volume-bars">${Object.keys(vols).length?Object.entries(vols).sort((a,b)=>b[1]-a[1]).map(([m,v])=>'<div class="volume-row"><strong>'+m+'</strong><div class="volume-track"><i style="width:'+(v/maxV*100)+'%"></i></div><span>'+Math.round(v).toLocaleString()+'</span></div>').join(""):'<p class="muted">เริ่มบันทึก Workout เพื่อดูข้อมูล</p>'}</div></div><div class="card"><span class="eyebrow">WEIGHT TREND</span>${chart(state.checkins.map(x=>({label:x.date,v:x.weight}))," kg")}</div></div><div class="card" style="margin-top:11px"><span class="eyebrow">WEEKLY REPORT</span><div class="report-grid" style="margin-top:10px"><div class="report-block"><span class="muted">Missions</span><h2>${weeklyMissionCount()}/7</h2></div><div class="report-block"><span class="muted">Nutrition Score</span><h2>${nutritionScore()}</h2></div><div class="report-block"><span class="muted">Commander Grade</span><h2>${discipline()>=90?"A+":discipline()>=80?"A":discipline()>=70?"B":"C"}</h2></div></div></div>`;
+ $("analyticsPage").innerHTML=`<div class="card"><span class="eyebrow">PERFORMANCE ANALYTICS</span><h2>Training Intelligence</h2><div class="analytics-grid"><div class="metric-card"><span>Workouts</span><strong>${doneCount()}</strong></div><div class="metric-card"><span>Total Sets</span><strong>${completedSets()}</strong></div><div class="metric-card"><span>Total Volume</span><strong>${totalVolume().toLocaleString()}</strong></div><div class="metric-card"><span>XP</span><strong>${xpTotal().toLocaleString()}</strong></div><div class="metric-card"><span>Warrior Score</span><strong>${warriorScore()}</strong></div><div class="metric-card"><span>Readiness</span><strong>${readiness()}</strong></div><div class="metric-card"><span>Weight Change</span><strong>${bodyChange()} kg</strong></div><div class="metric-card"><span>Body Fat Change</span><strong>${bodyFatChange()}%</strong></div><div class="metric-card"><span>Streak</span><strong>${streak()} days</strong></div><div class="metric-card"><span>PRs</span><strong>${Object.keys(state.prs).length}</strong></div></div></div><div class="two grid" style="margin-top:11px"><div class="card"><span class="eyebrow">MUSCLE VOLUME</span><h2>Training Balance</h2><div class="volume-bars">${Object.keys(vols).length?Object.entries(vols).sort((a,b)=>b[1]-a[1]).map(([m,v])=>'<div class="volume-row"><strong>'+m+'</strong><div class="volume-track"><i style="width:'+(v/maxV*100)+'%"></i></div><span>'+Math.round(v).toLocaleString()+'</span></div>').join(""):'<p class="muted">เริ่มบันทึก Workout เพื่อดูข้อมูล</p>'}</div></div><div class="card"><span class="eyebrow">WEIGHT TREND</span>${chart(state.checkins.map(x=>({label:x.date,v:x.weight}))," kg")}</div></div><div class="card" style="margin-top:11px"><span class="eyebrow">WEEKLY REPORT</span><div class="report-grid" style="margin-top:10px"><div class="report-block"><span class="muted">Missions</span><h2>${weeklyMissionCount()}/7</h2></div><div class="report-block"><span class="muted">Nutrition Score</span><h2>${nutritionScore()}</h2></div><div class="report-block"><span class="muted">Commander Grade</span><h2>${discipline()>=90?"A+":discipline()>=80?"A":discipline()>=70?"B":"C"}</h2></div></div></div>`;
 }
 function renderLibrary(){
  const all=[];WORKOUTS.forEach(w=>w.exercises.forEach(ex=>{if(!all.some(x=>x.name===ex.name))all.push(ex)}));
@@ -418,12 +487,12 @@ function renderSettings(){
  $("settingsPage").innerHTML=`<div class="card"><span class="eyebrow">SYSTEM SETTINGS</span><h2>โปรไฟล์ เป้าหมาย และข้อมูล</h2>
  <div class="two grid">
   <div><label>ชื่อ<input id="profileName" value="${p.name}"></label><label>วันเริ่มโปรแกรม<input id="startDate" type="date" value="${state.start}"></label><label>น้ำหนักเป้าหมาย (kg)<input id="targetWeight" type="number" step=".1" value="${p.targetWeight}"></label><label>Body Fat เป้าหมาย (%)<input id="targetBf" type="number" step=".1" value="${p.targetBf}"></label></div>
-  <div><label>Calories Target<input id="calorieTarget" type="number" value="${p.calorieTarget}"></label><label>Protein Target (g)<input id="proteinTarget" type="number" value="${p.proteinTarget}"></label><label>Carb Target (g)<input id="carbTarget" type="number" value="${p.carbTarget}"></label><label>Fat Target (g)<input id="fatTarget" type="number" value="${p.fatTarget}"></label><label>น้ำต่อกิโลกรัม (ml/kg)<input id="waterPerKg" type="number" value="${p.waterMlPerKg}"></label><label>น้ำเพิ่มในวันฝึก (ml)<input id="workoutWater" type="number" value="${p.workoutWaterMl}"></label><label>ส่วนสูง (cm)<input id="heightCm" type="number" value="${p.heightCm}"></label><label>อายุ<input id="profileAge" type="number" value="${p.age}"></label><label>ระดับกิจกรรม<select id="activityFactor"><option value="1.3" ${p.activityFactor==1.3?"selected":""}>เบา</option><option value="1.45" ${p.activityFactor==1.45?"selected":""}>ปานกลาง</option><option value="1.6" ${p.activityFactor==1.6?"selected":""}>ค่อนข้างสูง</option></select></label><label>Calorie Deficit (%)<input id="deficitPct" type="number" value="${p.calorieDeficitPct}"></label><label><input id="smartTargets" type="checkbox" ${p.smartTargets?"checked":""} style="width:auto"> ปรับเป้าสารอาหารอัตโนมัติ</label><p class="muted">ค่าที่ระบบแนะนำตอนนี้: ${smartTargetSummary()}</p><button id="applySmartTargets" class="btn ghost">คำนวณและใช้เป้าปัจจุบัน</button></div>
+  <div><label>Calories Target<input id="calorieTarget" type="number" value="${p.calorieTarget}"></label><label>Protein Target (g)<input id="proteinTarget" type="number" value="${p.proteinTarget}"></label><label>Carb Target (g)<input id="carbTarget" type="number" value="${p.carbTarget}"></label><label>Fat Target (g)<input id="fatTarget" type="number" value="${p.fatTarget}"></label><label>น้ำต่อกิโลกรัม (ml/kg)<input id="waterPerKg" type="number" value="${p.waterMlPerKg}"></label><label>น้ำเพิ่มในวันฝึก (ml)<input id="workoutWater" type="number" value="${p.workoutWaterMl}"></label><label>ส่วนสูง (cm)<input id="heightCm" type="number" value="${p.heightCm}"></label><label>อายุ<input id="profileAge" type="number" value="${p.age}"></label><label>ระดับกิจกรรม<select id="activityFactor"><option value="1.3" ${p.activityFactor==1.3?"selected":""}>เบา</option><option value="1.45" ${p.activityFactor==1.45?"selected":""}>ปานกลาง</option><option value="1.6" ${p.activityFactor==1.6?"selected":""}>ค่อนข้างสูง</option></select></label><label>Calorie Deficit (%)<input id="deficitPct" type="number" value="${p.calorieDeficitPct}"></label><label><input id="smartTargets" type="checkbox" ${p.smartTargets?"checked":""} style="width:auto"> ปรับเป้าสารอาหารอัตโนมัติ</label><label><input id="compactMode" type="checkbox" ${state.settings.compact?"checked":""} style="width:auto"> Compact Dashboard</label><p class="muted">ค่าที่ระบบแนะนำตอนนี้: ${smartTargetSummary()}</p><button id="applySmartTargets" class="btn ghost">คำนวณและใช้เป้าปัจจุบัน</button></div>
  </div>
  <div class="mobile-more-grid" style="margin-bottom:12px">
   <button class="btn ghost" data-more-page="calendarPage">84 Days</button>
   <button class="btn ghost" data-more-page="coachPage">Commander</button>
-  <button class="btn ghost" data-more-page="analyticsPage">Analytics</button>
+  <button class="btn ghost" data-more-page="warriorPage">Warrior DNA</button><button class="btn ghost" data-more-page="analyticsPage">Analytics</button>
   <button class="btn ghost" data-more-page="libraryPage">Library</button>
  </div>
  <div style="display:flex;gap:8px;flex-wrap:wrap"><button id="saveSettings" class="btn primary">บันทึก</button><button id="exportData" class="btn ghost">ส่งออก Backup</button><label class="btn ghost">นำเข้า Backup<input id="importData" type="file" hidden accept=".json"></label><button id="resetData" class="btn danger">ล้างข้อมูล</button></div><p class="muted" style="margin-top:14px">ข้อมูลบันทึกอัตโนมัติในเครื่อง และโภชนาการแยกตามวันที่ ควร Export Backup อย่างน้อยสัปดาห์ละครั้ง</p></div>`;
@@ -447,7 +516,7 @@ function renderSettings(){
    calorieDeficitPct:+$("deficitPct").value||15,
    smartTargets:$("smartTargets").checked
   });
-  save();renderAll();toast("บันทึกแล้ว");
+  state.settings.compact=$("compactMode").checked;document.body.classList.toggle("compact-mode",state.settings.compact);save();renderAll();toast("บันทึกแล้ว");
  };
  document.querySelectorAll("[data-more-page]").forEach(b=>b.onclick=()=>showPage(b.dataset.morePage));
  $("applySmartTargets").onclick=()=>{maybeApplySmartTargets(true);renderSettings()};
@@ -501,7 +570,7 @@ if("serviceWorker" in navigator && location.protocol!=="file:"){
  };
  const top=document.querySelector(".topbar>div:last-child");
  if(top){const s=document.createElement("span");s.id="storageStatus";s.className="storage-status";s.innerHTML="<i></i> บันทึกอัตโนมัติ";top.prepend(s)}
- updateStorageStatus();
+ document.body.classList.toggle("compact-mode",state.settings.compact);updateStorageStatus();
 })();
 
 })();

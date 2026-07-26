@@ -1,7 +1,7 @@
 {
-  "name": "BN Warrior V12",
+  "name": "BN Warrior V14",
   "short_name": "BN Warrior",
-  "description": "Personal 84-day fitness PWA with smart nutrition targets",
+  "description": "Production military fitness PWA with Warrior DNA and smart coaching",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

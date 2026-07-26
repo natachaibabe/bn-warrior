@@ -1,5 +1,10 @@
-# BN Warrior V12
+# BN Warrior V14 Production
 
-อัปโหลดไฟล์ทั้งหมดในโฟลเดอร์นี้ไปยัง root ของ GitHub Repository แล้วเปิด GitHub Pages จาก branch `main` และ folder `/ (root)`.
+Upload every file in this folder to the root of the existing GitHub repository.
 
-V12 มี Smart Nutrition Targets, Mobile Navigation 5 เมนู และ Mobile Hero Layout ใหม่
+GitHub Pages:
+- Source: Deploy from a branch
+- Branch: main
+- Folder: / (root)
+
+V14 adds Warrior DNA, Warrior Score, Daily Timeline, Daily Review, responsive production UI, smart nutrition and 84-day periodization.

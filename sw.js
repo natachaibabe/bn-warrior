@@ -1,4 +1,4 @@
-const CACHE="bn-warrior-v12";
+const CACHE="bn-warrior-v14";
 const ASSETS=["./","./index.html","./manifest.webmanifest","./assets/styles.css","./assets/workouts.js","./assets/app.js","./assets/hero.webp","./icons/icon-192.png","./icons/icon-512.png"];
 self.addEventListener("install",e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting())));
 self.addEventListener("activate",e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
